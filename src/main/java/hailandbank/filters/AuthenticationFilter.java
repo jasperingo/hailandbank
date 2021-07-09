@@ -50,7 +50,6 @@ public class AuthenticationFilter implements ContainerRequestFilter {
     }
     
     private void abort(ContainerRequestContext requestContext) {
-        System.out.println(" i dot get AFTER");
         requestContext.abortWith(
                 Response.status(Response.Status.UNAUTHORIZED)
                         .header(HttpHeaders.WWW_AUTHENTICATE, SCHEME+" realm=\"jwt\"")

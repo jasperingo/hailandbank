@@ -20,21 +20,39 @@ public class User extends Entity {
     
     public static final String TABLE = "users";
     
-    public static final int TYPE_CUSTOMER = 0;
+    public static final String TYPE_CUSTOMER = "customer";
     
-    public static final int TYPE_MERCHANT = 1;
+    public static final String TYPE_MERCHANT = "merchant";
     
+    public static final String USER_COLUMNS_FOR_JOINS = 
+            "b.id, "
+            + "b.type, "
+            + "b.first_name, "
+            + "b.last_name, "
+            + "b.middle_name, "
+            + "b.phone_number, "
+            + "b.email, "
+            + "b.pin, "
+            + "b.photo, "
+            + "b.address_street, "
+            + "b.address_city, "
+            + "b.address_state, "
+            + "b.updated_at, "
+            + "b.created_at";
     
     private long id;
     
-    private int type; 
-    private int photo;    
+    private int photo; 
+    private String type; 
     private String firstName;
     private String lastName;
     private String middleName;
     private String email;
     private String phoneNumber;
     private String pin;
+    private String addressStreet;
+    private String addressCity;
+    private String addressState;
     private String phoneNumberVerificationOTP;
     private Date updatedAt;
     private Date createdAt;
@@ -57,11 +75,11 @@ public class User extends Entity {
         this.id = id;
     }
 
-    public int getType() {
+    public String getType() {
         return type;
     }
 
-    public void setType(int type) {
+    public void setType(String type) {
         this.type = type;
     }
 
@@ -120,6 +138,32 @@ public class User extends Entity {
     public void setPin(String pin) {
         this.pin = pin;
     }
+
+    public String getAddressStreet() {
+        return addressStreet;
+    }
+
+    public void setAddressStreet(String addressStreet) {
+        this.addressStreet = addressStreet;
+    }
+
+    public String getAddressCity() {
+        return addressCity;
+    }
+
+    public void setAddressCity(String addressCity) {
+        this.addressCity = addressCity;
+    }
+
+    public String getAddressState() {
+        return addressState;
+    }
+
+    public void setAddressState(String addressState) {
+        this.addressState = addressState;
+    }
+    
+    
     
     public String getPhoneNumberVerificationOTP() {
         return phoneNumberVerificationOTP;
@@ -195,7 +239,7 @@ public class User extends Entity {
     public void insert() throws SQLException {
         
         String sql = 
-                "INSERT INTO users "
+                "INSERT INTO "+TABLE+" "
                 +"(type, "
                 + "first_name, "
                 + "last_name, "
@@ -207,7 +251,7 @@ public class User extends Entity {
             
             getConnection().setAutoCommit(false);
             
-            pstmt.setInt(1, TYPE_CUSTOMER);
+            pstmt.setString(1, type);
             pstmt.setString(2, firstName);
             pstmt.setString(3, lastName);
             pstmt.setString(4, phoneNumber);
@@ -221,6 +265,10 @@ public class User extends Entity {
             
             ResultSet keys = pstmt.getGeneratedKeys();
             if (keys.next()) setId(keys.getLong(1));
+            
+            
+            //insert customer or merchant
+            
             
             this.getAccount(0).insert();
             
@@ -266,7 +314,7 @@ public class User extends Entity {
     public static User form(ResultSet result) throws SQLException {
         User user = new User();
         user.setId(result.getLong("id"));
-        user.setType(result.getInt("type"));
+        user.setType(result.getString("type"));
         user.setFirstName(result.getString("first_name"));
         user.setLastName(result.getString("last_name"));
         user.setMiddleName(result.getString("middle_name"));
@@ -279,17 +327,17 @@ public class User extends Entity {
         return user;
     }
     
-    public void updatePassword() throws SQLException {
-        updatePassword(false);
+    public void updatePin() throws SQLException {
+        updatePin(false);
     }
     
-    public void updatePassword(boolean viaReset) throws SQLException {
+    public void updatePin(boolean viaReset) throws SQLException {
         
         String sql = "UPDATE "+TABLE+" SET pin = ? WHERE id = ?";
         
         try (PreparedStatement pstmt = getConnection().prepareStatement(sql)) {
             
-            getConnection().setAutoCommit(false);
+            if (viaReset) getConnection().setAutoCommit(false);
             
             pstmt.setString(1, getPin());
             pstmt.setLong(2, getId());
@@ -300,14 +348,39 @@ public class User extends Entity {
                 throw new SQLException();
             }
             
-            getPinReset().setUser(this);
-            getPinReset().delete();
+            if (viaReset) {
+                getPinReset().setUser(this);
+                getPinReset().delete();
+            }
             
-            getConnection().commit();
+            if (viaReset) getConnection().commit();
             
         } catch (SQLException ex) {
-            getConnection().rollback();
+            if (viaReset) getConnection().rollback();
             throw new SQLException(__("errors.pin_reset_failed"));
+        }
+    }
+    
+    
+    public void updateAddress() throws SQLException {
+        
+        String sql = "UPDATE "+TABLE+" SET address_street = ?, address_city = ?, address_state = ? WHERE id = ?";
+        
+        try (PreparedStatement pstmt = getConnection().prepareStatement(sql)) {
+            
+            pstmt.setString(1, getAddressStreet());
+            pstmt.setString(2, getAddressCity());
+            pstmt.setString(3, getAddressState());
+            pstmt.setLong(4, getId());
+            
+            int rows = pstmt.executeUpdate();
+            
+            if (rows == 0) {
+                throw new SQLException("rows is not updated"+rows+" with id "+getId());
+            }
+            
+        } catch (SQLException ex) {
+            throw new SQLException(__("errors.address_update_failed"));
         }
     }
     

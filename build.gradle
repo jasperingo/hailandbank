@@ -10,6 +10,7 @@ repositories {
 dependencies {
     implementation 'com.password4j:password4j:1.5.3'
     implementation group: 'mysql', name: 'mysql-connector-java', version: '8.0.25'
+    implementation group: 'commons-io', name: 'commons-io', version: '2.6'
     compile 'com.googlecode.json-simple:json-simple:1.1.1'
     compile 'org.glassfish.jersey.containers:jersey-container-servlet-core:2.26'
     compile 'org.glassfish.jersey.inject:jersey-hk2:2.26'

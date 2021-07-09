@@ -3,6 +3,8 @@ package hailandbank.resources;
 
 import hailandbank.entities.Account;
 import hailandbank.entities.AuthToken;
+import hailandbank.entities.Customer;
+import hailandbank.entities.Merchant;
 import hailandbank.entities.PinReset;
 import hailandbank.entities.User;
 import hailandbank.utils.Helpers;
@@ -21,17 +23,41 @@ import javax.ws.rs.NotFoundException;
 public class UserResource {
     
     
+    private User authUser;
+
+    public User getAuthUser() {
+        return authUser;
+    }
+
+    public void setAuthUser(User authUser) {
+        this.authUser = authUser;
+    }
+    
+    public Customer getAuthCustomer() {
+        return (Customer) authUser;
+    }
+    
+    public Merchant getAuthMerchant() {
+        return (Merchant) authUser;
+    }
+    
+    
     public boolean phoneNumberIsValid(User user) {
         return user.getPhoneNumber() != null || user.getPhoneNumber().length() == 11;
     }
     
-     public boolean pinIsValid(User user) {
+    public boolean pinIsValid(User user) {
         return user.getPin() != null && Pattern.matches("\\d{4}", user.getPin());
     }
     
     public Response signUp(User user) throws InputErrorException, SQLException {
         
         final HashMap<String, InputData> errors = new HashMap<>();
+        
+        if (user.getType() == null || (!user.getType().equals(User.TYPE_CUSTOMER) &&
+                !user.getType().equals(User.TYPE_MERCHANT))) {
+            errors.put("type", new InputData(user.getType(), __("errors.user_type_invalid")));
+        }
         
         if (user.getFirstName() == null || user.getFirstName().isEmpty()) {
             errors.put("firstName", new InputData(user.getFirstName(), __("errors.required_field")));
@@ -97,9 +123,7 @@ public class UserResource {
         String pin = user.getPin();
         
         try {
-            
             user = User.getUser("phone_number", user.getPhoneNumber());
-            
         } catch (NotFoundException ex) {
             throw inputEx;
         }
@@ -119,9 +143,9 @@ public class UserResource {
         return Response.ok(MyResponse.success(__("success.credentials"), user)).build();
     }
     
-    public Response signout(User user) throws SQLException {
+    public Response signout() throws SQLException {
         
-        user.getAuthToken().delete();
+        getAuthUser().getAuthToken().delete();
         
         return Response.noContent().build();
     }
@@ -200,12 +224,52 @@ public class UserResource {
         
         Helpers.hashPassword(user);
         
-        user.updatePassword(true);
+        user.updatePin(true);
         
         return Response.ok(MyResponse.success(__("success.pinreset"))).build();
     }
     
     
+    public Response updateAddress(User data) throws InputErrorException, SQLException {
+        
+        final HashMap<String, InputData> errors = new HashMap<>();
+        
+        if (data.getAddressStreet() == null || data.getAddressStreet().isEmpty()) {
+            errors.put("addressStreet", new InputData(data.getAddressStreet(), __("errors.address_street_invalid")));
+        }
+        
+        if (data.getAddressCity() == null || data.getAddressCity().isEmpty()) {
+            errors.put("addressCity", new InputData(data.getAddressCity(), __("errors.address_city_invalid")));
+        }
+        
+        if (data.getAddressState() == null || data.getAddressState().isEmpty()) {
+            errors.put("addressState", new InputData(data.getAddressState(), __("errors.address_state_invalid")));
+        }
+        
+        if (errors.isEmpty()) {
+            //verify address via a web service :)
+        }
+        
+        if (!errors.isEmpty()) {
+            throw new InputErrorException(errors);
+        }
+        
+        getAuthUser().setAddressStreet(data.getAddressStreet());
+        getAuthUser().setAddressCity(data.getAddressCity());
+        getAuthUser().setAddressState(data.getAddressState());
+        
+        getAuthUser().updateAddress();
+        
+        return Response.ok(MyResponse.success(__("success.address_updated"))).build();
+    }
+    
+    
+    public Response updatePin(User user) {
+        
+        
+        
+        return Response.ok(MyResponse.success(__("success.pin_update"))).build();
+    }
     
     
 }

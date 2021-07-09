@@ -11,6 +11,7 @@ import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.Produces;
 import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.core.Context;
@@ -25,8 +26,11 @@ public class Users {
     
     private final UserResource resource;
     
-    public Users() {
+    public Users(@Context ContainerRequestContext requestContainer) {
         this.resource = new UserResource();
+        Object user = requestContainer.getProperty("user");
+        User authUser = (user != null) ? (User) user : null;
+        this.resource.setAuthUser(authUser);
     }
     
     @POST
@@ -44,8 +48,8 @@ public class Users {
     @Auth
     @DELETE
     @Path("signout")
-    public Response signout(@Context ContainerRequestContext req) throws SQLException {
-        return resource.signout((User)req.getProperty("user"));
+    public Response signout() throws SQLException {
+        return resource.signout();
     }
     
     @POST
@@ -54,12 +58,27 @@ public class Users {
         return resource.forgotPin(user);
     }
     
-    
     @POST
     @Path("resetpin")
     public Response resetPin(User user) throws InputErrorException, SQLException {
         return resource.resetPin(user);
     }
+    
+    @Auth
+    @PUT
+    @Path("update-address")
+    public Response updateAddress(User user) throws InputErrorException, SQLException {
+        return resource.updateAddress(user);
+    }
+    
+    @Auth
+    @PUT
+    @Path("update-pin")
+    public Response updatePin(User user) {
+        return null;
+    }
+    
+    
     
     
     

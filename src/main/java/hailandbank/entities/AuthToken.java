@@ -7,7 +7,6 @@ import static hailandbank.utils.Helpers.__;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Date;
 import javax.ws.rs.NotFoundException;
 import javax.xml.bind.annotation.XmlRootElement;
 
@@ -75,7 +74,7 @@ public class AuthToken extends UserToken {
     
     public static User findUserWhenNotExpired(String token) throws SQLException, NotFoundException {
         
-        String sql = "SELECT *, a.id AS auth_id "
+        String sql = "SELECT "+User.USER_COLUMNS_FOR_JOINS+", a.id AS auth_id "
                 + "FROM "+TABLE+" AS a INNER JOIN "+User.TABLE+" AS b "
                 + "ON a.user_id = b.id "
                 + "WHERE a.token = ? AND TIMESTAMP(a.expires) > NOW()";
