@@ -2,17 +2,29 @@
 package hailandbank.utils;
 
 import com.password4j.Hash;
-import com.password4j.HashChecker;
 import com.password4j.Password;
 import hailandbank.entities.User;
 import java.security.SecureRandom;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
-import java.util.HashMap;
+import java.util.MissingResourceException;
 import java.util.Properties;
+import java.util.ResourceBundle;
+
 
 public class Helpers {
+    
+    private static final ResourceBundle lang = ResourceBundle.getBundle("hailandbank.locales.AppStrings");
+    
+    
+    public static String __(String s) {
+        try {
+            return lang.getString(s);
+        } catch (MissingResourceException e) {
+            return s;
+        }
+    }
     
     public static Connection getDBConnection() {
         
@@ -59,46 +71,10 @@ public class Helpers {
     }
     
     
-    private static final HashMap<String, String> lang = new HashMap<>();
-    
-    static {
-        lang.put("app_name", "HailAndBank");
-        
-        lang.put("messages.input_fields_error", "Input fields have errors.");
-        lang.put("messages.insert_user_error", "User failed to be inserted into the database.");
-        
-        lang.put("success.signup", "Welcome to HailAndBank.");
-        lang.put("success.credentials", "Credientials are correct.");
-        lang.put("success.forgotpin", "Pin reset request has been sent.");
-        lang.put("success.pinreset", "Pin has been reset.");
-        lang.put("success.address_updated", "Address has been updated.");
-        lang.put("success.pin_updated", "Pin has been updated.");
-        
-        lang.put("errors.no_request_body", "Request do not have a body.");
-        lang.put("errors.insert_account_error", "User acount failed to be inserted into the database.");
-        lang.put("errors.insert_pin_reset_error", "User pin reset failed to be inserted into the database.");
-        lang.put("errors.unknown", "An unknown error occured.");
-        lang.put("errors.unauthenticated", "Authentication failed.");
-        lang.put("errors.credentials", "Credientials are incorrect.");
-        lang.put("errors.user_not_found", "User do not exist.");
-        lang.put("errors.required_field", "Field is required.");
-        lang.put("errors.user_type_invalid", "Type is invalid.");
-        lang.put("errors.phone_number_invalid", "Phone number is invalid.");
-        lang.put("errors.pin_invalid", "Pin is invalid.");
-        lang.put("errors.pin_reset_token_invalid", "Pin reset token is invalid");
-        lang.put("errors.pin_reset_failed", "Pin reset failed.");
-        lang.put("errors.address_street_invalid", "Street address is invalid");
-        lang.put("errors.address_city_invalid", "City is invalid");
-        lang.put("errors.address_state_invalid", "State is invalid");
-        lang.put("errors.address_update_failed", "Address failed to be updated in the database.");
-        
+    @SuppressWarnings("CallToPrintStackTrace")
+    public static void stackTracer(Exception ex) {
+        ex.printStackTrace();
     }
-    
-    
-    public static String __(String s) {
-        return (String) lang.getOrDefault(s, s);
-    }
-    
     
 }
 

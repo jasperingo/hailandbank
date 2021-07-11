@@ -15,7 +15,7 @@ public class InputErrorException extends Exception {
     }
     
     public InputErrorException(HashMap<String, InputData> errors) {
-        super(__("messages.input_fields_error"));
+        super(__("errors.input_fields"));
         this.errors = errors;
     }
     

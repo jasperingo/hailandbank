@@ -1,12 +1,28 @@
 
 package hailandbank.entities;
 
+//import static hailandbank.entities.Entity.getConnection;
 import java.util.Date;
 import javax.xml.bind.annotation.XmlRootElement;
 
 
 @XmlRootElement
-public class Action {
+public enum Action {
+    
+    SIGN_UP(1),
+        
+    SIGN_IN(2),
+        
+    SIGN_OUT(3),
+        
+    FORGOT_PIN(4),
+        
+    RESET_PIN(5),
+        
+    UPDATE_ADDRESS(6),
+        
+    UPDATE_PIN(7);
+    
     
     public static final String TABLE = "actions";
     
@@ -17,6 +33,11 @@ public class Action {
     private String description;
     
     private Date createdAt;
+    
+    
+    private Action(long id) {
+        this.id = id;
+    }
     
     
     public long getId() {
@@ -55,3 +76,8 @@ public class Action {
     
     
 }
+
+
+
+
+

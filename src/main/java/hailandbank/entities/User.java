@@ -2,6 +2,7 @@
 package hailandbank.entities;
 
 
+import hailandbank.utils.Helpers;
 import static hailandbank.utils.Helpers.__;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -40,9 +41,14 @@ public class User extends Entity {
             + "b.updated_at, "
             + "b.created_at";
     
+    public static final String USERS_IMG_PATH = "/path/to/users/imgs/";
+    
+    public static final String USERS_DEFAULT_IMG = "user.jpg";
+    
+    
     private long id;
     
-    private int photo; 
+    private String photo; 
     private String type; 
     private String firstName;
     private String lastName;
@@ -83,12 +89,12 @@ public class User extends Entity {
         this.type = type;
     }
 
-    public int getPhoto() {
+    public String getPhoto() {
         return photo;
     }
-
-    public void setPhoto(int photo) {
-        this.photo = photo;
+    
+    public void setPhoto(String photo) {
+        this.photo = USERS_IMG_PATH+(photo==null?USERS_DEFAULT_IMG:photo);
     }
     
     public String getFirstName() {
@@ -234,6 +240,48 @@ public class User extends Entity {
     }
     
     
+     public static User find(int id) throws SQLException {
+        return find("id", String.valueOf(id));
+    }
+    
+    public static User find(String selection, String selectionArg) throws SQLException, NotFoundException {
+        
+        try (PreparedStatement pstmt = getConnection().prepareStatement(
+                String.format("SELECT * FROM users WHERE %s = ?", selection)
+            )) {
+            
+            pstmt.setString(1, selectionArg);
+            
+            ResultSet result = pstmt.executeQuery();
+            
+            if (result.next()) {
+                User user = new User();
+                form(result, user);
+                return user;
+            } else {
+                throw new NotFoundException(__("errors.user_not_found"));
+            }
+            
+        } catch (SQLException ex) {
+            Helpers.stackTracer(ex);
+            throw new SQLException(__("errors.unknown"));
+        }
+    }
+    
+    
+    public static void form(ResultSet result, User user) throws SQLException {
+        user.setId(result.getLong("id"));
+        user.setType(result.getString("type"));
+        user.setFirstName(result.getString("first_name"));
+        user.setLastName(result.getString("last_name"));
+        user.setMiddleName(result.getString("middle_name"));
+        user.setPhoneNumber(result.getString("phone_number"));
+        user.setEmail(result.getString("email"));
+        user.setPin(result.getString("pin"));
+        user.setPhoto(result.getString("photo"));
+        user.setUpdatedAt(result.getDate("updated_at"));
+        user.setCreatedAt(result.getDate("created_at"));
+    }
     
     
     public void insert() throws SQLException {
@@ -247,9 +295,7 @@ public class User extends Entity {
                 + "pin) "
                 + "VALUES (?, ?, ?, ?, ?)";
         
-        try (PreparedStatement pstmt = getConnection().prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);) {
-            
-            getConnection().setAutoCommit(false);
+        try (PreparedStatement pstmt = getConnection().prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             
             pstmt.setString(1, type);
             pstmt.setString(2, firstName);
@@ -259,72 +305,19 @@ public class User extends Entity {
             
             int rows = pstmt.executeUpdate();
             
-            if (rows == 0) {
-                throw new SQLException();
-            }
+            if (rows == 0) throw new SQLException("Rows is not inserted for user: "+rows);
             
             ResultSet keys = pstmt.getGeneratedKeys();
             if (keys.next()) setId(keys.getLong(1));
-            
-            
-            //insert customer or merchant
-            
             
             this.getAccount(0).insert();
             
             this.getAuthToken().insert();
             
-            getConnection().commit();
-            
         } catch (SQLException ex) {
-            getConnection().rollback();
-            throw new SQLException(__("messages.insert_user_error"));
+            Helpers.stackTracer(ex);
+            throw new SQLException(__("errors.insert_user"));
         }
-    }
-    
-    
-    public static User getUser(int id) throws SQLException {
-        return getUser("id", String.valueOf(id));
-    }
-    
-    public static User getUser(String selection, String selectionArg) throws SQLException, NotFoundException {
-        
-        try {
-            
-            PreparedStatement pstmt = getConnection().prepareStatement(
-                String.format("SELECT * FROM users WHERE %s = ?", selection)
-            );
-            
-            pstmt.setString(1, selectionArg);
-            
-            ResultSet result = pstmt.executeQuery();
-            
-            if (result.next()) {
-                return form(result);
-            } else {
-                throw new NotFoundException(__("errors.user_not_found"));
-            }
-            
-        } catch (SQLException ex) {
-            //throw ex;
-            throw new SQLException(__("errors.unknown"));
-        }
-    }
-    
-    public static User form(ResultSet result) throws SQLException {
-        User user = new User();
-        user.setId(result.getLong("id"));
-        user.setType(result.getString("type"));
-        user.setFirstName(result.getString("first_name"));
-        user.setLastName(result.getString("last_name"));
-        user.setMiddleName(result.getString("middle_name"));
-        user.setPhoneNumber(result.getString("phone_number"));
-        user.setEmail(result.getString("email"));
-        user.setPin(result.getString("pin"));
-        user.setPhoto(result.getInt("photo"));
-        user.setUpdatedAt(result.getDate("updated_at"));
-        user.setCreatedAt(result.getDate("created_at"));
-        return user;
     }
     
     public void updatePin() throws SQLException {
@@ -344,9 +337,7 @@ public class User extends Entity {
             
             int rows = pstmt.executeUpdate();
             
-            if (rows == 0) {
-                throw new SQLException();
-            }
+            if (rows == 0) throw new SQLException("Rows is not updated: "+rows+". With id "+getId());
             
             if (viaReset) {
                 getPinReset().setUser(this);
@@ -357,6 +348,7 @@ public class User extends Entity {
             
         } catch (SQLException ex) {
             if (viaReset) getConnection().rollback();
+            Helpers.stackTracer(ex);
             throw new SQLException(__("errors.pin_reset_failed"));
         }
     }
@@ -375,11 +367,10 @@ public class User extends Entity {
             
             int rows = pstmt.executeUpdate();
             
-            if (rows == 0) {
-                throw new SQLException("rows is not updated"+rows+" with id "+getId());
-            }
+            if (rows == 0) throw new SQLException("Rows is not updated: "+rows+". With id "+getId());
             
         } catch (SQLException ex) {
+            Helpers.stackTracer(ex);
             throw new SQLException(__("errors.address_update_failed"));
         }
     }

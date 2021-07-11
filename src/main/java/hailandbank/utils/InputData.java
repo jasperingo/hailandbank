@@ -32,6 +32,9 @@ public class InputData {
         this.error = error;
     }
     
-    
+    public static InputData with(String value, String error) {
+        return new InputData(value, error);
+    }
     
 }
+

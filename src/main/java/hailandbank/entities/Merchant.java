@@ -2,6 +2,7 @@
 package hailandbank.entities;
 
 
+import hailandbank.utils.Helpers;
 import static hailandbank.utils.Helpers.__;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -14,9 +15,23 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlRootElement
 public class Merchant extends User {
     
+    @SuppressWarnings("FieldNameHidesFieldInSuperclass")
     public static final String TABLE = "merchants";
     
+    public static final int CODE_LEN = 6;
+    
+    public static final String ALLOWED_CODE_CHARS = "1234567890";
+    
+    public static final String STATUS_ACTIVE = "active";
+    
+    public static final String STATUS_INACTIVE = "inactive";
+    
+    public static final int LEVEL_ONE = 1;
+    
+    
     private long id;
+    
+    private long userId;
     
     private String name;
     
@@ -38,6 +53,14 @@ public class Merchant extends User {
     @Override
     public void setId(long id) {
         this.id = id;
+    }
+    
+    public long getUserId() {
+        return userId;
+    }
+
+    public void setUserId(long userId) {
+        this.userId = userId;
     }
     
     public String getName() {
@@ -89,7 +112,8 @@ public class Merchant extends User {
     }
     
     
-    public void insert(int userId, String phoneNumber) throws SQLException {
+    @Override
+    public void insert() throws SQLException {
         
         String sql = 
                 "INSERT INTO "+TABLE+" "
@@ -100,25 +124,35 @@ public class Merchant extends User {
                 + "status) "
                 + "VALUES (?, ?, ?, ?, ?)";
         
-        try (PreparedStatement pstmt = getConnection().prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);) {
+        try (PreparedStatement pstmt = getConnection().prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             
-            pstmt.setLong(1, userId);
-            pstmt.setString(2, phoneNumber);
+            getConnection().setAutoCommit(false);
+            
+            super.insert();
+            
+            setUserId(getId());
+            
+            pstmt.setLong(1, getUserId());
+            pstmt.setString(2, getPhoneNumber());
             pstmt.setString(3, getCode());
             pstmt.setInt(4, getLevel());
             pstmt.setString(5, getStatus());
             
             int rows = pstmt.executeUpdate();
             
-            if (rows == 0) {
-                throw new SQLException();
-            }
+            if (rows == 0) throw new SQLException("Rows is not inserted for user(merchant): "+rows);
+            
+            ActionLog.log(this, Action.SIGN_UP);
             
             ResultSet keys = pstmt.getGeneratedKeys();
             if (keys.next()) setId(keys.getLong(1));
             
+            getConnection().commit();
+            
         } catch (SQLException ex) {
-            throw new SQLException(__("messages.insert_user_error"));
+            getConnection().rollback();
+            Helpers.stackTracer(ex);
+            throw new SQLException(__("errors.insert_user"));
         }
         
     }

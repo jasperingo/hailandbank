@@ -21,8 +21,10 @@ public class RequestEntityFilter implements ContainerRequestFilter {
 
     @Override
     public void filter(ContainerRequestContext requestContext) {
-        if ((requestContext.getMethod().equals(HttpMethod.POST) || requestContext.getMethod().equals(HttpMethod.PUT) ||
-                requestContext.getMethod().equals(HttpMethod.DELETE)) && !requestContext.getUriInfo().getPath().equals("users/signout"))
+        if ((requestContext.getMethod().equals(HttpMethod.POST) || 
+                requestContext.getMethod().equals(HttpMethod.PUT) ||
+                requestContext.getMethod().equals(HttpMethod.DELETE)) && 
+                !requestContext.getUriInfo().getPath().equals("users/signout"))
             validate(requestContext);
     }
 
@@ -42,7 +44,7 @@ public class RequestEntityFilter implements ContainerRequestFilter {
     private void abort(ContainerRequestContext requestContext) {
         requestContext.abortWith(
                 Response.status(Response.Status.BAD_REQUEST)
-                        .entity(MyResponse.error(__("errors.no_request_body")))
+                        .entity(MyResponse.error(__("errors.request_body_invalid")))
                         .build()
         );
     }

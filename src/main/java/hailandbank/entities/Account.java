@@ -1,7 +1,7 @@
 
 package hailandbank.entities;
 
-import static hailandbank.entities.Entity.getConnection;
+
 import hailandbank.utils.Helpers;
 import static hailandbank.utils.Helpers.__;
 import java.sql.PreparedStatement;
@@ -15,7 +15,7 @@ public class Account extends Entity {
     
     public static final String TABLE = "accounts";
     
-    public static final int TYPE_SAVINGS = 0;
+    public static final String TYPE_SAVINGS = "savings";
     
     protected static final int NUMBER_LEN = 10;
     
@@ -25,7 +25,7 @@ public class Account extends Entity {
     
     private User user;
     
-    private int type;
+    private String type;
     
     private String number;
     
@@ -48,14 +48,14 @@ public class Account extends Entity {
         this.user = user;
     }
 
-    public int getType() {
+    public String getType() {
         return type;
     }
 
-    public void setType(int type) {
+    public void setType(String type) {
         this.type = type;
     }
-
+    
     public String getNumber() {
         return number;
     }
@@ -90,17 +90,16 @@ public class Account extends Entity {
         try (PreparedStatement pstmt = getConnection().prepareStatement(sql)) {
             
             pstmt.setLong(1, getUser().getId());
-            pstmt.setInt(2, getType());
+            pstmt.setString(2, getType());
             pstmt.setString(3, getNumber());
             
             int rows = pstmt.executeUpdate();
             
-            if (rows == 0)
-                throw new SQLException();
+            if (rows == 0) throw new SQLException("Rows is not inserted for account: "+rows);
             
         } catch (SQLException ex) {
-            //throw ex;
-            throw new SQLException(__("errors.insert_account_error"));
+            Helpers.stackTracer(ex);
+            throw new SQLException(__("errors.insert_account"));
         }
     }
     

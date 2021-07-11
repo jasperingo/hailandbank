@@ -2,6 +2,8 @@
 package hailandbank.routes;
 
 
+import hailandbank.entities.Customer;
+import hailandbank.entities.Merchant;
 import hailandbank.entities.User;
 import hailandbank.filters.Auth;
 import hailandbank.resources.UserResource;
@@ -24,24 +26,43 @@ import javax.ws.rs.core.Response;
 @Produces(MediaType.APPLICATION_JSON)
 public class Users {
     
+    @Context 
+    private ContainerRequestContext requestContainer;
+    
     private final UserResource resource;
     
-    public Users(@Context ContainerRequestContext requestContainer) {
+    public Users() {
         this.resource = new UserResource();
+    }
+    
+    public UserResource putAuthUser() {
         Object user = requestContainer.getProperty("user");
-        User authUser = (user != null) ? (User) user : null;
-        this.resource.setAuthUser(authUser);
+        User auth = (user != null) ? (User) user : null;
+        resource.setAuthUser(auth);
+        return resource;
     }
     
     @POST
-    @Path("signup")
-    public Response signUp(User user) throws InputErrorException, SQLException {
+    @Path("customer/signup")
+    public Response signUp(Customer user) throws InputErrorException, SQLException {
+        return resource.signUp(user);
+    }
+    
+    @POST
+    @Path("merchant/signup")
+    public Response signUp(Merchant user) throws InputErrorException, SQLException {
         return resource.signUp(user);
     }
     
     @POST
     @Path("signin")
-    public Response signIn(User user) throws InputErrorException, SQLException {
+    public Response signIn(Customer user) throws InputErrorException, SQLException {
+        return resource.signIn(user);
+    }
+    
+    @POST
+    @Path("signin")
+    public Response signIn(Merchant user) throws InputErrorException, SQLException {
         return resource.signIn(user);
     }
     
@@ -68,7 +89,7 @@ public class Users {
     @PUT
     @Path("update-address")
     public Response updateAddress(User user) throws InputErrorException, SQLException {
-        return resource.updateAddress(user);
+        return putAuthUser().updateAddress(user);
     }
     
     @Auth

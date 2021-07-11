@@ -22,15 +22,15 @@ import javax.ws.rs.NotFoundException;
 
 public class UserResource {
     
-    
     private User authUser;
-
-    public User getAuthUser() {
-        return authUser;
-    }
-
+    
+    
     public void setAuthUser(User authUser) {
         this.authUser = authUser;
+    }
+    
+    public User getAuthUser() {
+        return authUser;
     }
     
     public Customer getAuthCustomer() {
@@ -43,46 +43,59 @@ public class UserResource {
     
     
     public boolean phoneNumberIsValid(User user) {
-        return user.getPhoneNumber() != null || user.getPhoneNumber().length() == 11;
+        return user.getPhoneNumber() != null && user.getPhoneNumber().length() == 11;
     }
     
     public boolean pinIsValid(User user) {
         return user.getPin() != null && Pattern.matches("\\d{4}", user.getPin());
     }
     
+    public boolean typeIsValid(User user) {
+        return user.getType() != null &&
+                (user.getType().equals(User.TYPE_MERCHANT) || user.getType().equals(User.TYPE_CUSTOMER));
+    }
+    
+    private void generateAccount(User user) {
+        Account account = new Account();
+        account.setType(Account.TYPE_SAVINGS);
+        account.setUser(user);
+        account.generateNumber();
+        user.addAccount(account);
+    }
+    
     public Response signUp(User user) throws InputErrorException, SQLException {
         
         final HashMap<String, InputData> errors = new HashMap<>();
         
-        if (user.getType() == null || (!user.getType().equals(User.TYPE_CUSTOMER) &&
-                !user.getType().equals(User.TYPE_MERCHANT))) {
-            errors.put("type", new InputData(user.getType(), __("errors.user_type_invalid")));
+        if (!typeIsValid(user)) {
+            errors.put("type", InputData.with(user.getType(), __("errors.user_type_invalid")));
         }
         
         if (user.getFirstName() == null || user.getFirstName().isEmpty()) {
-            errors.put("firstName", new InputData(user.getFirstName(), __("errors.required_field")));
+            errors.put("firstName", InputData.with(user.getFirstName(), __("errors.required_field")));
         }
         
         if (user.getLastName() == null || user.getLastName().isEmpty()) {
-            errors.put("lastName", new InputData(user.getLastName(), __("errors.required_field")));
+            errors.put("lastName", InputData.with(user.getLastName(), __("errors.required_field")));
         }
         
         if (!phoneNumberIsValid(user)) {
-            errors.put("phoneNumber", new InputData(user.getPhoneNumber(), __("errors.phone_number_invalid")));
+            errors.put("phoneNumber", InputData.with(user.getPhoneNumber(), __("errors.phone_number_invalid")));
         }
         
         if (!pinIsValid(user)) {
-            errors.put("pin", new InputData(user.getPin(), __("errors.pin_invalid")));
+            errors.put("pin", InputData.with(user.getPin(), __("errors.pin_invalid")));
         }
         
         //validate PHONE NUMBER OTP
         
-        if (errors.isEmpty() || !errors.containsKey("phoneNumber")) {
+        if (!errors.containsKey("phoneNumber")) {
             try {
-                User.getUser("phone_number", user.getPhoneNumber());
-                errors.put("phoneNumber", new InputData(user.getPhoneNumber(), __("errors.phone_number_invalid")));
+                User.find("phone_number", user.getPhoneNumber());
+                errors.put("phoneNumber", InputData.with(user.getPhoneNumber(), __("errors.phone_number_invalid")));
             } catch (NotFoundException ex) {}
         }
+        
         
         if (!errors.isEmpty()) {
             throw new InputErrorException(errors);
@@ -90,15 +103,15 @@ public class UserResource {
         
         Helpers.hashPassword(user);
         
-        Account account = new Account();
-        account.setType(Account.TYPE_SAVINGS);
-        account.setUser(user);
-        account.generateNumber();
+        generateAccount(user);
         
-        AuthToken auth = generatedAuthToken(user);
+        generatedAuthToken(user);
         
-        user.setAuthToken(auth);
-        user.addAccount(account);
+        if (user.getType().equals(User.TYPE_MERCHANT)) {
+            ((Merchant)user).setLevel(Merchant.LEVEL_ONE);
+            ((Merchant)user).setStatus(Merchant.STATUS_INACTIVE);
+            ((Merchant)user).setCode(Helpers.generateToken(Merchant.CODE_LEN, Merchant.ALLOWED_CODE_CHARS));
+        }
         
         user.insert();
         
@@ -106,7 +119,7 @@ public class UserResource {
         user.getAccount(0).setUser(null);
         user.getAuthToken().setUser(null);
         
-        return Response.created(URI.create("api/users/"+user.getId()))
+        return Response.created(URI.create("/users/"+user.getType()+"/"+user.getId()))
                 .entity(MyResponse.success(__("success.signup"), user))
                 .build();
     }
@@ -116,14 +129,14 @@ public class UserResource {
         
         InputErrorException inputEx = new InputErrorException(__("errors.credentials"));
         
-        if (phoneNumberIsValid(user) || !pinIsValid(user)) {
+        if (phoneNumberIsValid(user) || !pinIsValid(user) || !typeIsValid(user)) {
             throw inputEx;
         }
         
         String pin = user.getPin();
         
         try {
-            user = User.getUser("phone_number", user.getPhoneNumber());
+            user = User.find("phone_number", user.getPhoneNumber());
         } catch (NotFoundException ex) {
             throw inputEx;
         }
@@ -132,32 +145,29 @@ public class UserResource {
             throw inputEx;
         }
         
-        AuthToken auth = generatedAuthToken(user);
+        generatedAuthToken(user);
         
-        auth.insert();
+        user.getAuthToken().insert();
         
-        auth.setUser(null);
+        user.getAuthToken().setUser(null);
+        
         user.setPin(null);
-        user.setAuthToken(auth);
         
         return Response.ok(MyResponse.success(__("success.credentials"), user)).build();
     }
     
     public Response signout() throws SQLException {
-        
-        getAuthUser().getAuthToken().delete();
-        
+        getAuthUser().getAuthToken().delete();    
         return Response.noContent().build();
     }
     
-    
-    public AuthToken generatedAuthToken(User user) {
+    public void generatedAuthToken(User user) {
         //implement JWT AUTH
         AuthToken auth = new AuthToken();
         auth.setUser(user);
         auth.setToken(Helpers.generateToken(AuthToken.TOKEN_LEN, AuthToken.ALLOWED_TOKEN_CHARS));
         auth.generateExpiringDate();
-        return auth;
+        user.setAuthToken(auth);
     }
     
     public Response forgotPin(User user) throws InputErrorException, SQLException {
@@ -169,7 +179,7 @@ public class UserResource {
         }
         
         try {
-            user = User.getUser("phone_number", user.getPhoneNumber());
+            user = User.find("phone_number", user.getPhoneNumber());
         } catch (NotFoundException ex) {
             throw inputException;
         }
@@ -273,14 +283,6 @@ public class UserResource {
     
     
 }
-
-
-
-
-
-
-
-
 
 
 

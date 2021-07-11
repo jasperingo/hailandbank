@@ -2,7 +2,7 @@
 package hailandbank.entities;
 
 
-import static hailandbank.entities.Entity.getConnection;
+import hailandbank.utils.Helpers;
 import static hailandbank.utils.Helpers.__;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -42,11 +42,11 @@ public class AuthToken extends UserToken {
             
             int rows = pstmt.executeUpdate();
             
-            if (rows == 0)
-                throw new SQLException();
+            if (rows == 0) throw new SQLException("Rows is not inserted for auth token: "+rows);
             
         } catch (SQLException ex) {
-            throw new SQLException(__("messages.insert_account_error"));
+            Helpers.stackTracer(ex);
+            throw new SQLException(__("errors.insert_auth_token"));
         }
     }
     
@@ -62,14 +62,13 @@ public class AuthToken extends UserToken {
             
             int rows = pstmt.executeUpdate();
             
-            if (rows == 0) 
-                throw new SQLException();
+            if (rows == 0) throw new SQLException("Rows is not deleted for auth token: "+rows+". With id: "+getId());
             
         } catch (SQLException ex) {
+            Helpers.stackTracer(ex);
             throw new SQLException(__("errors.unknown"));
         }
     }
-    
     
     
     public static User findUserWhenNotExpired(String token) throws SQLException, NotFoundException {
@@ -88,7 +87,8 @@ public class AuthToken extends UserToken {
             ResultSet result = pstmt.executeQuery();
             
             if (result.next()) {
-                User user = User.form(result);
+                User user = new User();
+                User.form(result, user);
                 AuthToken auth = new AuthToken();
                 auth.setId(result.getLong("auth_id"));
                 auth.setToken(token);
@@ -99,6 +99,7 @@ public class AuthToken extends UserToken {
             }
             
         } catch (SQLException ex) {
+            Helpers.stackTracer(ex);
             throw new SQLException(__("errors.unknown"));
         }
     }
