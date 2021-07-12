@@ -17,7 +17,7 @@ public class ActionLog extends Entity {
     private long id;
     
     private Action action;
-            
+    
     private User user;
 
     public long getId() {
@@ -58,7 +58,13 @@ public class ActionLog extends Entity {
         
         try (PreparedStatement pstmt = getConnection().prepareStatement(sql)) {
             
-            pstmt.setLong(1, getUser().getId());
+            if (getUser() instanceof Customer) 
+                pstmt.setLong(1, ((Customer)getUser()).getUserId());
+            else if (getUser() instanceof Merchant)
+                pstmt.setLong(1, ((Merchant)getUser()).getUserId());
+            else 
+                pstmt.setLong(1, getUser().getId());
+            
             pstmt.setLong(2, getAction().getId());
             
             int rows = pstmt.executeUpdate();

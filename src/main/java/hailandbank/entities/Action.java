@@ -21,7 +21,9 @@ public enum Action {
         
     UPDATE_ADDRESS(6),
         
-    UPDATE_PIN(7);
+    UPDATE_PIN(7),
+    
+    UPDATE_MERCHANT_NAME(8);
     
     
     public static final String TABLE = "actions";

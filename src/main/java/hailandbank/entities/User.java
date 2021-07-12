@@ -21,25 +21,25 @@ public class User extends Entity {
     
     public static final String TABLE = "users";
     
+    public static final String TABLE_COLUMNS = 
+            "users.id, "
+            + "users.type, "
+            + "users.first_name, "
+            + "users.last_name, "
+            + "users.middle_name, "
+            + "users.phone_number, "
+            + "users.email, "
+            + "users.pin, "
+            + "users.photo, "
+            + "users.address_street, "
+            + "users.address_city, "
+            + "users.address_state, "
+            + "users.updated_at, "
+            + "users.created_at";
+    
     public static final String TYPE_CUSTOMER = "customer";
     
     public static final String TYPE_MERCHANT = "merchant";
-    
-    public static final String USER_COLUMNS_FOR_JOINS = 
-            "b.id, "
-            + "b.type, "
-            + "b.first_name, "
-            + "b.last_name, "
-            + "b.middle_name, "
-            + "b.phone_number, "
-            + "b.email, "
-            + "b.pin, "
-            + "b.photo, "
-            + "b.address_street, "
-            + "b.address_city, "
-            + "b.address_state, "
-            + "b.updated_at, "
-            + "b.created_at";
     
     public static final String USERS_IMG_PATH = "/path/to/users/imgs/";
     
@@ -59,7 +59,7 @@ public class User extends Entity {
     private String addressStreet;
     private String addressCity;
     private String addressState;
-    private String phoneNumberVerificationOTP;
+    
     private Date updatedAt;
     private Date createdAt;
     
@@ -67,6 +67,10 @@ public class User extends Entity {
     private List<AuthToken> authTokens;
     private List<Account> accounts;
     private PinReset pinReset;
+    
+    
+    private String phoneNumberVerificationOTP;
+    private String newPin;
     
     
     public User() {
@@ -168,16 +172,6 @@ public class User extends Entity {
     public void setAddressState(String addressState) {
         this.addressState = addressState;
     }
-    
-    
-    
-    public String getPhoneNumberVerificationOTP() {
-        return phoneNumberVerificationOTP;
-    }
-
-    public void setPhoneNumberVerificationOTP(String phoneNumberVerificationOTP) {
-        this.phoneNumberVerificationOTP = phoneNumberVerificationOTP;
-    }
 
     public Date getUpdatedAt() {
         return updatedAt;
@@ -240,7 +234,27 @@ public class User extends Entity {
     }
     
     
-     public static User find(int id) throws SQLException {
+    
+    public String getPhoneNumberVerificationOTP() {
+        return phoneNumberVerificationOTP;
+    }
+
+    public void setPhoneNumberVerificationOTP(String phoneNumberVerificationOTP) {
+        this.phoneNumberVerificationOTP = phoneNumberVerificationOTP;
+    }
+
+    public String getNewPin() {
+        return newPin;
+    }
+
+    public void setNewPin(String newPin) {
+        this.newPin = newPin;
+    }
+    
+    
+    
+    
+    public static User find(int id) throws SQLException, NotFoundException {
         return find("id", String.valueOf(id));
     }
     
@@ -255,9 +269,7 @@ public class User extends Entity {
             ResultSet result = pstmt.executeQuery();
             
             if (result.next()) {
-                User user = new User();
-                form(result, user);
-                return user;
+                return form(result);
             } else {
                 throw new NotFoundException(__("errors.user_not_found"));
             }
@@ -268,8 +280,22 @@ public class User extends Entity {
         }
     }
     
+    public static User form(ResultSet result) throws SQLException {
+        return form(result, new User());
+    }
     
-    public static void form(ResultSet result, User user) throws SQLException {
+    public static User form(ResultSet result, String type) throws SQLException {
+        switch (type) {
+            case TYPE_CUSTOMER:
+                return form(result, new Customer());
+            case TYPE_MERCHANT:
+                return form(result, new Merchant());
+            default:
+                return form(result, new User());
+        }
+    }
+    
+    public static User form(ResultSet result, User user) throws SQLException {
         user.setId(result.getLong("id"));
         user.setType(result.getString("type"));
         user.setFirstName(result.getString("first_name"));
@@ -281,6 +307,7 @@ public class User extends Entity {
         user.setPhoto(result.getString("photo"));
         user.setUpdatedAt(result.getDate("updated_at"));
         user.setCreatedAt(result.getDate("created_at"));
+        return user;
     }
     
     
@@ -330,50 +357,53 @@ public class User extends Entity {
         
         try (PreparedStatement pstmt = getConnection().prepareStatement(sql)) {
             
-            if (viaReset) getConnection().setAutoCommit(false);
+            getConnection().setAutoCommit(false);
             
             pstmt.setString(1, getPin());
             pstmt.setLong(2, getId());
             
             int rows = pstmt.executeUpdate();
             
-            if (rows == 0) throw new SQLException("Rows is not updated: "+rows+". With id "+getId());
+            if (rows == 0) throw new SQLException("Rows is not updated: "+rows+". With user id "+getId());
             
             if (viaReset) {
                 getPinReset().setUser(this);
                 getPinReset().delete();
+                
+                ActionLog.log(this, Action.RESET_PIN);
+            } else {
+                ActionLog.log(this, Action.UPDATE_PIN);
             }
             
-            if (viaReset) getConnection().commit();
+            getConnection().commit();
             
         } catch (SQLException ex) {
-            if (viaReset) getConnection().rollback();
+            getConnection().rollback();
             Helpers.stackTracer(ex);
-            throw new SQLException(__("errors.pin_reset_failed"));
+            String msg = viaReset ? __("errors.pin_reset_failed") : __("errors.update_pin_failed");
+            throw new SQLException(msg);
         }
     }
     
-    
-    public void updateAddress() throws SQLException {
+    public void updateAddress(long uid) throws SQLException {
         
         String sql = "UPDATE "+TABLE+" SET address_street = ?, address_city = ?, address_state = ? WHERE id = ?";
         
-        try (PreparedStatement pstmt = getConnection().prepareStatement(sql)) {
+        PreparedStatement pstmt = getConnection().prepareStatement(sql);
             
-            pstmt.setString(1, getAddressStreet());
-            pstmt.setString(2, getAddressCity());
-            pstmt.setString(3, getAddressState());
-            pstmt.setLong(4, getId());
+        pstmt.setString(1, getAddressStreet());
+        pstmt.setString(2, getAddressCity());
+        pstmt.setString(3, getAddressState());
+        pstmt.setLong(4, uid);
             
-            int rows = pstmt.executeUpdate();
+        int rows = pstmt.executeUpdate();
             
-            if (rows == 0) throw new SQLException("Rows is not updated: "+rows+". With id "+getId());
-            
-        } catch (SQLException ex) {
-            Helpers.stackTracer(ex);
-            throw new SQLException(__("errors.address_update_failed"));
-        }
+        if (rows == 0) 
+            throw new SQLException("Rows is not updated: "+rows+". With user id "+getId());
+        
     }
+    
+    
     
     
     

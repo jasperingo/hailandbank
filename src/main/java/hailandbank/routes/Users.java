@@ -6,11 +6,12 @@ import hailandbank.entities.Customer;
 import hailandbank.entities.Merchant;
 import hailandbank.entities.User;
 import hailandbank.filters.Auth;
+import hailandbank.filters.CAuth;
+import hailandbank.filters.MAuth;
 import hailandbank.resources.UserResource;
 import hailandbank.utils.InputErrorException;
 import java.sql.SQLException;
 import javax.ws.rs.Consumes;
-import javax.ws.rs.DELETE;
 import javax.ws.rs.Produces;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
@@ -55,22 +56,15 @@ public class Users {
     }
     
     @POST
-    @Path("signin")
+    @Path("customer/signin")
     public Response signIn(Customer user) throws InputErrorException, SQLException {
         return resource.signIn(user);
     }
     
     @POST
-    @Path("signin")
+    @Path("merchant/signin")
     public Response signIn(Merchant user) throws InputErrorException, SQLException {
         return resource.signIn(user);
-    }
-    
-    @Auth
-    @DELETE
-    @Path("signout")
-    public Response signout() throws SQLException {
-        return resource.signout();
     }
     
     @POST
@@ -85,19 +79,36 @@ public class Users {
         return resource.resetPin(user);
     }
     
-    @Auth
-    @PUT
-    @Path("update-address")
-    public Response updateAddress(User user) throws InputErrorException, SQLException {
-        return putAuthUser().updateAddress(user);
-    }
     
     @Auth
     @PUT
     @Path("update-pin")
-    public Response updatePin(User user) {
-        return null;
+    public Response updatePin(User user) throws InputErrorException, SQLException {
+        return putAuthUser().updatePin(user);
     }
+    
+    @MAuth
+    @PUT
+    @Path("merchant/update-name")
+    public Response updateName(Merchant user) throws InputErrorException, SQLException {
+        return putAuthUser().updateName(user);
+    }
+    
+    @MAuth
+    @PUT
+    @Path("merchant/update-address")
+    public Response updateAddress(Merchant user) throws InputErrorException, SQLException {
+        return putAuthUser().updateAddress(user);
+    }
+    
+    @CAuth
+    @PUT
+    @Path("customer/update-address")
+    public Response updateAddress(Customer user) throws InputErrorException, SQLException {
+        return putAuthUser().updateAddress(user);
+    }
+    
+    
     
     
     

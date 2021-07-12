@@ -66,7 +66,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
         );
     }
     
-    private int validate(String token, ContainerRequestContext requestContext){
+    protected int validate(String token, ContainerRequestContext requestContext){
         // JWT VALIDATION
         try {
             User user = AuthToken.findUserWhenNotExpired(token);
@@ -78,8 +78,6 @@ public class AuthenticationFilter implements ContainerRequestFilter {
             return 2;
         }
     }
-
-    
     
 }
 

@@ -2,6 +2,7 @@
 package hailandbank.entities;
 
 
+import hailandbank.utils.Helpers;
 import static hailandbank.utils.Helpers.__;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -17,7 +18,7 @@ public class PinReset extends UserToken {
     
     public static final int TOKEN_LEN = 6;
     
-    public static final int TOKEN_DURATION = (1000*60*15); //mins
+    public static final int TOKEN_DURATION = (1000*60*15); //15 minutes
     
     
     public void generateExpiringDate() {
@@ -46,14 +47,16 @@ public class PinReset extends UserToken {
             
             int rows = pstmt.executeUpdate();
             
-            if (rows == 0)
-                throw new SQLException();
+            if (rows == 0) throw new SQLException("Rows is not inserted for pin reset: "+rows);
+            
+            ActionLog.log(getUser(), Action.FORGOT_PIN);
             
             getConnection().commit();
             
         } catch (SQLException ex) {
             getConnection().rollback();
-            throw new SQLException(__("errors.insert_pin_reset_error"));
+            Helpers.stackTracer(ex);
+            throw new SQLException(__("errors.insert_pin_reset"));
         }
     }
     
@@ -61,15 +64,11 @@ public class PinReset extends UserToken {
         
         String deleteSql = "DELETE FROM "+TABLE+" WHERE user_id = ?";
         
-        try (PreparedStatement deletePstmt = getConnection().prepareStatement(deleteSql)) {
+        PreparedStatement deletePstmt = getConnection().prepareStatement(deleteSql);
             
-            deletePstmt.setLong(1, getUser().getId());
+        deletePstmt.setLong(1, getUser().getId());
             
-            deletePstmt.executeUpdate();
-            
-        } catch (SQLException ex) {
-            throw ex;
-        }
+        deletePstmt.executeUpdate();
     }
     
     public static long findUserIdWhenNotExpired(String token, String userPhoneNumber) throws SQLException, NotFoundException  {
@@ -79,9 +78,7 @@ public class PinReset extends UserToken {
                 + "ON a.user_id = b.id "
                 + "WHERE a.token = ? AND b.phone_number = ? AND TIMESTAMP(a.expires) > NOW()";
         
-        try {
-            
-            PreparedStatement pstmt = getConnection().prepareStatement(sql);
+        try (PreparedStatement pstmt = getConnection().prepareStatement(sql)) {
             
             pstmt.setString(1, token);
             pstmt.setString(2, userPhoneNumber);
@@ -95,6 +92,7 @@ public class PinReset extends UserToken {
             }
             
         } catch (SQLException ex) {
+            Helpers.stackTracer(ex);
             throw new SQLException(__("errors.unknown"));
         }
     }

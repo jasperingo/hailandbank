@@ -2,8 +2,6 @@
 package hailandbank.entities;
 
 
-import static hailandbank.entities.Entity.getConnection;
-import static hailandbank.entities.User.form;
 import hailandbank.utils.Helpers;
 import static hailandbank.utils.Helpers.__;
 import java.sql.PreparedStatement;
@@ -19,6 +17,12 @@ public class Customer extends User {
     
     @SuppressWarnings("FieldNameHidesFieldInSuperclass")
     public static final String TABLE = "customers";
+    
+    @SuppressWarnings("FieldNameHidesFieldInSuperclass")
+     public static final String TABLE_COLUMNS = 
+            "customers.id AS cid, "
+            + "customers.user_id, "
+            + "customers.preferred_merchant_id";
     
     private long id;
     
@@ -53,14 +57,18 @@ public class Customer extends User {
         this.preferredMerchant = preferredMerchant;
     }
     
+    public static Customer find(int id) throws SQLException, NotFoundException {
+        return find("id", String.valueOf(id));
+    }
     
-    public static User find(String selection, String selectionArg) throws SQLException, NotFoundException {
+    public static Customer find(String selection, String selectionArg) throws SQLException, NotFoundException {
         
         try (PreparedStatement pstmt = getConnection().prepareStatement(
-                String.format("SELECT %s, a.id, b.user_id, b.preferred_merchant_id "
-                        + "FROM customers AS a INNER JOIN users AS b "
-                        + "ON a.user_id = b.id"
-                        + "WHERE %s = ?", USER_COLUMNS_FOR_JOINS, selection)
+                String.format("SELECT %s, %s "
+                        + "FROM %s INNER JOIN %s "
+                        + "ON customers.user_id = users.id "
+                        + "WHERE customers.%s = ?", 
+                        User.TABLE_COLUMNS,TABLE_COLUMNS, TABLE, User.TABLE, selection)
             )) {
             
             pstmt.setString(1, selectionArg);
@@ -68,9 +76,7 @@ public class Customer extends User {
             ResultSet result = pstmt.executeQuery();
             
             if (result.next()) {
-                Customer user = new Customer();
-                form(result, user);
-                return user;
+                return form(result);
             } else {
                 throw new NotFoundException(__("errors.user_not_found"));
             }
@@ -81,10 +87,19 @@ public class Customer extends User {
         }
     }
     
-    public static void form(ResultSet result, Customer user) throws SQLException {
-        User.form(result, user);
+    public static Customer form(ResultSet result) throws SQLException {
+        Customer user = (Customer)User.form(result, TYPE_CUSTOMER);
+        user.setId(result.getLong("cid"));
         user.setUserId(result.getLong("user_id"));
-        user.setCreatedAt(result.getDate("preferred_merchant_id"));
+        
+        long prefMerchant = result.getLong("preferred_merchant_id");
+        if (prefMerchant > 0) {
+            Merchant m = new Merchant();
+            m.setId(prefMerchant);
+            user.setPreferredMerchant(m);
+        }
+        
+        return user;
     }
     
     
@@ -124,13 +139,26 @@ public class Customer extends User {
     }
     
     
+    public void updateAddress() throws SQLException {
+        
+        try {
+            
+            getConnection().setAutoCommit(false);
+            
+            super.updateAddress(getUserId());
+            
+            ActionLog.log(this, Action.UPDATE_ADDRESS);
+            
+            getConnection().commit();
+            
+        } catch (SQLException ex) {
+            getConnection().rollback();
+            Helpers.stackTracer(ex);
+            throw new SQLException(__("errors.update_address_failed"));
+        }
+    }
     
     
 }
-
-
-
-
-
 
 

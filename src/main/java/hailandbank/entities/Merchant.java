@@ -9,6 +9,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Date;
+import javax.ws.rs.NotFoundException;
 import javax.xml.bind.annotation.XmlRootElement;
 
 
@@ -18,6 +19,17 @@ public class Merchant extends User {
     @SuppressWarnings("FieldNameHidesFieldInSuperclass")
     public static final String TABLE = "merchants";
     
+    @SuppressWarnings("FieldNameHidesFieldInSuperclass")
+    public static final String TABLE_COLUMNS = 
+            "merchants.id AS mid, "
+            + "merchants.user_id, "
+            + "merchants.name, "
+            + "merchants.code, "
+            + "merchants.level, "
+            + "merchants.transaction_limit, "
+            + "merchants.status, "
+            + "merchants.status_updated_at";
+    
     public static final int CODE_LEN = 6;
     
     public static final String ALLOWED_CODE_CHARS = "1234567890";
@@ -26,7 +38,40 @@ public class Merchant extends User {
     
     public static final String STATUS_INACTIVE = "inactive";
     
-    public static final int LEVEL_ONE = 1;
+    public static enum Level {
+        
+        ONE(1, 100000),
+        
+        TWO(2, 1000000),
+        
+        THREE(3, -1);
+        
+        private int value;
+        
+        private double transactionLimit;
+
+        private Level(int value, double transactionLimit) {
+            this.value = value;
+            this.transactionLimit = transactionLimit;
+        }
+
+        public int getValue() {
+            return value;
+        }
+
+        public void setValue(int value) {
+            this.value = value;
+        }
+
+        public double getTransactionLimit() {
+            return transactionLimit;
+        }
+
+        public void setTransactionLimit(double transactionLimit) {
+            this.transactionLimit = transactionLimit;
+        }
+        
+    }
     
     
     private long id;
@@ -112,6 +157,49 @@ public class Merchant extends User {
     }
     
     
+    public static Merchant find(int id) throws SQLException, NotFoundException {
+        return find("id", String.valueOf(id));
+    }
+    
+    public static Merchant find(String selection, String selectionArg) throws SQLException, NotFoundException {
+        
+        try (PreparedStatement pstmt = getConnection().prepareStatement(
+                String.format("SELECT %s, %s "
+                        + "FROM %s INNER JOIN %s "
+                        + "ON merchants.user_id = users.id "
+                        + "WHERE merchants.%s = ?", 
+                        User.TABLE_COLUMNS, TABLE_COLUMNS, TABLE, User.TABLE, selection)
+            )) {
+            
+            pstmt.setString(1, selectionArg);
+            
+            ResultSet result = pstmt.executeQuery();
+            
+            if (result.next()) {
+                return form(result);
+            } else {
+                throw new NotFoundException(__("errors.user_not_found"));
+            }
+            
+        } catch (SQLException ex) {
+            Helpers.stackTracer(ex);
+            throw new SQLException(__("errors.unknown"));
+        }
+    }
+    
+    public static Merchant form(ResultSet result) throws SQLException {
+        Merchant user = (Merchant)User.form(result, TYPE_MERCHANT);
+        user.setId(result.getLong("mid"));
+        user.setUserId(result.getLong("user_id"));
+        user.setName(result.getString("name"));
+        user.setCode(result.getString("code"));
+        user.setLevel(result.getInt("level"));
+        user.setTransactionLimit(result.getDouble("transaction_limit"));
+        user.setStatus(result.getString("status"));
+        user.setStatusUpdatedAt(result.getDate("status_updated_at"));
+        return user;
+    }
+    
     @Override
     public void insert() throws SQLException {
         
@@ -121,8 +209,9 @@ public class Merchant extends User {
                 + "phone_number, "
                 + "code, "
                 + "level, "
+                + "transaction_limit, "
                 + "status) "
-                + "VALUES (?, ?, ?, ?, ?)";
+                + "VALUES (?, ?, ?, ?, ?, ?)";
         
         try (PreparedStatement pstmt = getConnection().prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             
@@ -136,7 +225,8 @@ public class Merchant extends User {
             pstmt.setString(2, getPhoneNumber());
             pstmt.setString(3, getCode());
             pstmt.setInt(4, getLevel());
-            pstmt.setString(5, getStatus());
+            pstmt.setDouble(5, getTransactionLimit());
+            pstmt.setString(6, getStatus());
             
             int rows = pstmt.executeUpdate();
             
@@ -157,6 +247,71 @@ public class Merchant extends User {
         
     }
     
+    public void updateName() throws SQLException {
+        
+        String sql = "UPDATE "+TABLE+" SET name = ? WHERE id = ?";
+        
+        try (PreparedStatement pstmt = getConnection().prepareStatement(sql)) {
+            
+            getConnection().setAutoCommit(false);
+            
+            pstmt.setString(1, getName());
+            pstmt.setLong(2, getId());
+            
+            int rows = pstmt.executeUpdate();
+            
+            if (rows == 0) throw new SQLException("Rows is not updated: "+rows+". With user id "+getId());
+            
+            ActionLog.log(this, Action.UPDATE_MERCHANT_NAME);
+            
+            getConnection().commit();
+            
+        } catch (SQLException ex) {
+            getConnection().rollback();
+            Helpers.stackTracer(ex);
+            throw new SQLException(__("errors.update_merchant_name_failed"));
+        }
+    }
+    
+    public void updateAddress() throws SQLException {
+        
+        try {
+            
+            getConnection().setAutoCommit(false);
+            
+            super.updateAddress(getUserId());
+            
+            if (getStatus().equals(STATUS_INACTIVE) && getName() != null) {
+                updateStatus(STATUS_ACTIVE);
+            }
+            
+            ActionLog.log(this, Action.UPDATE_ADDRESS);
+            
+            getConnection().commit();
+            
+        } catch (SQLException ex) {
+            getConnection().rollback();
+            Helpers.stackTracer(ex);
+            throw new SQLException(__("errors.update_address_failed"));
+        }
+        
+    }
+    
+    private void updateStatus(String value) throws SQLException {
+        
+        String sql = "UPDATE "+TABLE+" SET status = ? WHERE id = ?";
+        
+        PreparedStatement pstmt = getConnection().prepareStatement(sql);
+        
+        pstmt.setString(1, value);
+        pstmt.setLong(4, getId());
+            
+        int rows = pstmt.executeUpdate();
+            
+        if (rows == 0) 
+            throw new SQLException("Rows is not updated: "+rows+". With user id "+getId());
+        
+    }
     
     
 }

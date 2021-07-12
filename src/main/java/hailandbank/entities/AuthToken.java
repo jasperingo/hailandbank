@@ -18,7 +18,7 @@ public class AuthToken extends UserToken {
     
     public static final int TOKEN_LEN = 20;
     
-    public static final int TOKEN_DURATION = (1000*60*60*24)*7; //days
+    public static final int TOKEN_DURATION = (1000*60*60*12); //12 hours
     
     
     public void generateExpiringDate() {
@@ -50,50 +50,93 @@ public class AuthToken extends UserToken {
         }
     }
     
-    public void delete() throws SQLException {
-        
-        String sql = "DELETE FROM "+TABLE+" WHERE id = ?";
+    public void insertWithAction() throws SQLException {
         
         try {
             
-            PreparedStatement pstmt = getConnection().prepareStatement(sql);
-            
-            pstmt.setLong(1, getId());
-            
-            int rows = pstmt.executeUpdate();
-            
-            if (rows == 0) throw new SQLException("Rows is not deleted for auth token: "+rows+". With id: "+getId());
+           getConnection().setAutoCommit(false);
+           
+           insert();
+           
+           ActionLog.log(getUser(), Action.SIGN_IN);
+           
+           getConnection().commit();
             
         } catch (SQLException ex) {
+            getConnection().rollback();
             Helpers.stackTracer(ex);
-            throw new SQLException(__("errors.unknown"));
+            throw new SQLException(__("errors.insert_auth_token"));
         }
+        
     }
     
+    public static AuthToken form(ResultSet result, String token) throws SQLException {
+        AuthToken auth = new AuthToken();
+        auth.setId(result.getLong("auth_id"));
+        auth.setToken(token);
+        return auth;
+    }
     
     public static User findUserWhenNotExpired(String token) throws SQLException, NotFoundException {
         
-        String sql = "SELECT "+User.USER_COLUMNS_FOR_JOINS+", a.id AS auth_id "
-                + "FROM "+TABLE+" AS a INNER JOIN "+User.TABLE+" AS b "
+        String sql = String.format("SELECT %s, a.id AS auth_id "
+                + "FROM %S AS a INNER JOIN %S AS b "
                 + "ON a.user_id = b.id "
-                + "WHERE a.token = ? AND TIMESTAMP(a.expires) > NOW()";
+                + "WHERE a.token = ? AND TIMESTAMP(a.expires) > NOW()", 
+                User.TABLE_COLUMNS, TABLE, User.TABLE);
         
-        try {
-            
-            PreparedStatement pstmt = getConnection().prepareStatement(sql);
+        ResultSet result = findUser(sql, token);
+        
+        User user = User.form(result);
+        user.setAuthToken(form(result, token));
+        return user;
+    }
+    
+    public static Merchant findMerchantWhenNotExpired(String token) throws SQLException, NotFoundException {
+        
+        String sql = String.format("SELECT %s, %s, a.id AS auth_id "
+                + "FROM %s AS a INNER JOIN %s "
+                + "ON a.user_id = merchants.user_id "
+                + "INNER JOIN %s "
+                + "ON merchants.user_id = users.id "
+                + "WHERE a.token = ? AND TIMESTAMP(a.expires) > NOW()", 
+                User.TABLE_COLUMNS, Merchant.TABLE_COLUMNS, TABLE, Merchant.TABLE, User.TABLE);
+       
+        ResultSet result = findUser(sql, token);
+        
+        Merchant user = Merchant.form(result);
+        user.setAuthToken(form(result, token));
+        return user;
+    }
+    
+    public static Customer findCustomerWhenNotExpired(String token) throws SQLException, NotFoundException {
+        
+        String sql = String.format("SELECT %s, %s, a.id AS auth_id "
+                + "FROM %s AS a INNER JOIN %s "
+                + "ON a.user_id = merchants.user_id "
+                + "INNER JOIN %s "
+                + "ON merchants.user_id = users.id "
+                + "WHERE a.token = ? AND TIMESTAMP(a.expires) > NOW()", 
+                User.TABLE_COLUMNS, Customer.TABLE_COLUMNS, TABLE, Customer.TABLE, User.TABLE);
+        
+        ResultSet result = findUser(sql, token);
+        
+        Customer user = Customer.form(result);
+        user.setAuthToken(form(result, token));
+        return user;
+        
+    }
+    
+    private static ResultSet findUser(String sql, String token) throws SQLException, NotFoundException {
+        
+        try (PreparedStatement pstmt = getConnection().prepareStatement(sql)) {
             
             pstmt.setString(1, token);
             
             ResultSet result = pstmt.executeQuery();
             
             if (result.next()) {
-                User user = new User();
-                User.form(result, user);
-                AuthToken auth = new AuthToken();
-                auth.setId(result.getLong("auth_id"));
-                auth.setToken(token);
-                user.setAuthToken(auth);
-                return user;
+                return result;
             } else {
                 throw new NotFoundException(__("errors.user_not_found"));
             }

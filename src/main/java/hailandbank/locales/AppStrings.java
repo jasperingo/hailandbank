@@ -18,6 +18,7 @@ public class AppStrings extends ListResourceBundle {
             {"success.pinreset", "Pin has been reset."},
             {"success.address_updated", "Address has been updated."},
             {"success.pin_updated", "Pin has been updated."},
+            {"success.merchant_name_updated", "Merchant name has been updated."},
             
             {"errors.request_body_invalid", "Request body is invalid."},
             {"errors.input_fields", "Input fields have errors."},
@@ -33,12 +34,18 @@ public class AppStrings extends ListResourceBundle {
             {"errors.user_type_invalid", "Type is invalid."},
             {"errors.phone_number_invalid", "Phone number is invalid."},
             {"errors.pin_invalid", "Pin is invalid."},
-            {"errors.pin_reset_token_invalid", "Pin reset token is invalid"},
+            {"errors.pin_reset_token_invalid", "Pin reset token is invalid."},
             {"errors.pin_reset_failed", "Pin reset failed."},
-            {"errors.address_street_invalid", "Street address is invalid"},
-            {"errors.address_city_invalid", "City is invalid"},
-            {"errors.address_state_invalid", "State is invalid"},
-            {"errors.address_update_failed", "Address failed to be updated in the database."},
+            {"errors.address_street_invalid", "Street address is invalid."},
+            {"errors.address_city_invalid", "City is invalid."},
+            {"errors.address_state_invalid", "State is invalid."},
+            {"errors.update_address_failed", "Address failed to be updated in the database."},
+            {"errors.update_pin_failed", "Pin failed to be updated in the database."},
+            
+            {"errors.merchant_name_invalid", "Merchant name is invalid"},
+            {"errors.update_merchant_name_failed", "Merchant name failed to be updated in the database."},
+            
+            
         };
     }
     
