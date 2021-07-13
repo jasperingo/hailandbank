@@ -44,6 +44,14 @@ public class ActionLog extends Entity {
         this.user = user;
     }
     
+    public long getUserId() {
+        if (getUser() instanceof Customer) 
+            return ((Customer)getUser()).getUserId();
+        else if (getUser() instanceof Merchant)
+            return ((Merchant)getUser()).getUserId();
+        else 
+            return getUser().getId();
+    }
     
     public static void log(User user, Action action) throws SQLException {
         ActionLog log = new ActionLog();
@@ -58,12 +66,7 @@ public class ActionLog extends Entity {
         
         try (PreparedStatement pstmt = getConnection().prepareStatement(sql)) {
             
-            if (getUser() instanceof Customer) 
-                pstmt.setLong(1, ((Customer)getUser()).getUserId());
-            else if (getUser() instanceof Merchant)
-                pstmt.setLong(1, ((Merchant)getUser()).getUserId());
-            else 
-                pstmt.setLong(1, getUser().getId());
+            pstmt.setLong(1, getUserId());
             
             pstmt.setLong(2, getAction().getId());
             

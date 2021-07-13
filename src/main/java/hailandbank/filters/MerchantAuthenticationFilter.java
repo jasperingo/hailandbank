@@ -3,6 +3,7 @@ package hailandbank.filters;
 
 import hailandbank.entities.AuthToken;
 import hailandbank.entities.Merchant;
+import hailandbank.utils.Helpers;
 import java.sql.SQLException;
 import javax.annotation.Priority;
 import javax.ws.rs.NotFoundException;
@@ -26,6 +27,7 @@ public class MerchantAuthenticationFilter extends AuthenticationFilter {
         } catch (NotFoundException ex) {
             return 1;
         } catch (SQLException ex) {
+            Helpers.stackTracer(ex);
             return 2;
         }
     }

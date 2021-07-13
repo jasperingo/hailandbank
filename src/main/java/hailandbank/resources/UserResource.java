@@ -119,12 +119,10 @@ public class UserResource {
         
         user.insert();
         
-        user.setPin(null);
-        user.getAccount(0).setUser(null);
         user.getAuthToken().setUser(null);
         
         return Response.created(URI.create("/users/"+user.getType()+"/"+user.getId()))
-                .entity(MyResponse.success(__("success.signup"), user))
+                .entity(MyResponse.success(__("success.signup"), user.getAuthToken()))
                 .build();
     }
     
@@ -162,11 +160,9 @@ public class UserResource {
         
         user.getAuthToken().insertWithAction();
         
-        user.setPin(null);
-        
         user.getAuthToken().setUser(null);
         
-        return Response.ok(MyResponse.success(__("success.credentials"), user)).build();
+        return Response.ok(MyResponse.success(__("success.credentials"), user.getAuthToken())).build();
     }
     
     public void generatedAuthToken(User user) {
@@ -333,6 +329,24 @@ public class UserResource {
         
         return Response.ok(MyResponse.success(__("success.merchant_name_updated"))).build();
     }
+    
+    public Response getMerchantData() throws SQLException {
+        getAuthMerchant().findAccounts(getAuthMerchant().getUserId());
+        return getData();
+    }
+    
+    public Response getCustomerData() throws SQLException {
+        getAuthCustomer().findAccounts(getAuthCustomer().getUserId());
+        return getData();
+    }
+    
+    public Response getData() {
+        getAuthUser().setPin(null);
+        getAuthUser().setAuthToken(null);
+        return Response.ok(MyResponse.success(getAuthUser())).build();
+    }
+    
+    
     
     
 }

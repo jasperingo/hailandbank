@@ -42,6 +42,7 @@ public class Helpers {
             return conn;
             
         } catch (SQLException | ClassNotFoundException e) {
+            stackTracer(e);
             return null;
         }
         

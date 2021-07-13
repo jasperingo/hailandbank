@@ -262,6 +262,10 @@ public class Merchant extends User {
             
             if (rows == 0) throw new SQLException("Rows is not updated: "+rows+". With user id "+getId());
             
+            if (getStatus().equals(STATUS_INACTIVE) && getAddressStreet()!= null) {
+                updateStatus(STATUS_ACTIVE);
+            }
+            
             ActionLog.log(this, Action.UPDATE_MERCHANT_NAME);
             
             getConnection().commit();

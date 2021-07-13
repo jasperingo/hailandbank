@@ -12,6 +12,7 @@ import hailandbank.resources.UserResource;
 import hailandbank.utils.InputErrorException;
 import java.sql.SQLException;
 import javax.ws.rs.Consumes;
+import javax.ws.rs.GET;
 import javax.ws.rs.Produces;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
@@ -41,6 +42,12 @@ public class Users {
         User auth = (user != null) ? (User) user : null;
         resource.setAuthUser(auth);
         return resource;
+    }
+    
+    @GET
+    @Path("holla")
+    public String home() {
+        return "running";
     }
     
     @POST
@@ -108,8 +115,19 @@ public class Users {
         return putAuthUser().updateAddress(user);
     }
     
+    @MAuth
+    @GET
+    @Path("merchant")
+    public Response getMerchantData() throws SQLException {
+        return putAuthUser().getMerchantData();
+    }
     
-    
+    @CAuth
+    @GET
+    @Path("customer")
+    public Response getCustomerData() throws SQLException {
+        return putAuthUser().getCustomerData();
+    }
     
     
     

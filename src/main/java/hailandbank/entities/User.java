@@ -305,6 +305,9 @@ public class User extends Entity {
         user.setEmail(result.getString("email"));
         user.setPin(result.getString("pin"));
         user.setPhoto(result.getString("photo"));
+        user.setAddressStreet(result.getString("address_street"));
+        user.setAddressCity(result.getString("address_city"));
+        user.setAddressState(result.getString("address_state"));
         user.setUpdatedAt(result.getDate("updated_at"));
         user.setCreatedAt(result.getDate("created_at"));
         return user;
@@ -403,6 +406,26 @@ public class User extends Entity {
         
     }
     
+    public void findAccounts(long uid) throws SQLException {
+        
+        String sql = "SELECT * FROM "+Account.TABLE+" WHERE user_id = ?";
+        
+        try (PreparedStatement pstmt = getConnection().prepareStatement(sql)) {
+            
+            pstmt.setLong(1, uid);
+            
+            ResultSet result = pstmt.executeQuery();
+            
+            while (result.next()) {
+                addAccount(Account.form(result));
+            }
+            
+        } catch (SQLException ex) {
+            Helpers.stackTracer(ex);
+            throw new SQLException(__("errors.unknown"));
+        }
+        
+    }
     
     
     

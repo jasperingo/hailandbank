@@ -3,6 +3,7 @@ package hailandbank.filters;
 
 import hailandbank.entities.AuthToken;
 import hailandbank.entities.User;
+import hailandbank.utils.Helpers;
 import hailandbank.utils.MyResponse;
 import static hailandbank.utils.Helpers.__;
 import java.sql.SQLException;
@@ -75,6 +76,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
         } catch (NotFoundException ex) {
             return 1;
         } catch (SQLException ex) {
+            Helpers.stackTracer(ex);
             return 2;
         }
     }

@@ -5,6 +5,7 @@ package hailandbank.entities;
 import hailandbank.utils.Helpers;
 import static hailandbank.utils.Helpers.__;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Date;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -72,10 +73,18 @@ public class Account extends Entity {
         this.createdAt = createdAt;
     }
     
-    
     public void generateNumber() {
         String newNumber = "00"+Helpers.generateToken(Account.NUMBER_LEN-2, Account.ALLOWED_NUMBER_CHARS);
         this.setNumber(newNumber);
+    }
+    
+    public static Account form(ResultSet result) throws SQLException{
+        Account a = new Account();
+        a.setId(result.getLong("id"));
+        a.setType(result.getString("type"));
+        a.setNumber(result.getString("number"));
+        a.setCreatedAt(result.getDate("created_at"));
+        return a;
     }
     
     public void insert() throws SQLException {
@@ -102,6 +111,8 @@ public class Account extends Entity {
             throw new SQLException(__("errors.insert_account"));
         }
     }
+    
+    
     
 }
 
