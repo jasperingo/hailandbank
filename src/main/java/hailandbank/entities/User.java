@@ -2,14 +2,21 @@
 package hailandbank.entities;
 
 
+import hailandbank.utils.Helpers;
+import static hailandbank.utils.Helpers.__;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
-import javax.json.bind.annotation.JsonbProperty;
+import javax.ws.rs.NotFoundException;
 import javax.xml.bind.annotation.*;
 import org.apache.commons.lang3.StringUtils;
 
 
-@XmlRootElement(name = "user")
+@XmlRootElement
 public class User extends Entity {
     
     public static final String TABLE = "users";
@@ -39,66 +46,44 @@ public class User extends Entity {
     public static final String USERS_DEFAULT_IMG = "user.jpg";
     
     
+    private long id;
+    
     private String photo; 
-    
     private String type; 
-    
-    @JsonbProperty("first_name")
-    @XmlElement(name = "first_name")
     private String firstName;
-    
-    @JsonbProperty("last_name")
-    @XmlElement(name = "last_name")
     private String lastName;
-    
-    @JsonbProperty("middle_name")
-    @XmlElement(name = "middle_name")
     private String middleName;
-    
     private String email;
-    
-    @JsonbProperty("phone_number")
-    @XmlElement(name = "phone_number")
     private String phoneNumber;
-    
     private String pin;
-    
-    @JsonbProperty("address_street")
-    @XmlElement(name = "address_street")
     private String addressStreet;
-    
-    @JsonbProperty("address_city")
-    @XmlElement(name = "address_city")
     private String addressCity;
-    
-    @JsonbProperty("address_state")
-    @XmlElement(name = "address_state")
     private String addressState;
     
-    @JsonbProperty("auth_token")
-    @XmlElement(name = "auth_token")
+    private Date updatedAt;
+    private Date createdAt;
+    
     private AuthToken authToken;
-    
-    @JsonbProperty("auth_tokens")
-    @XmlElement(name = "auth_tokens")
     private List<AuthToken> authTokens;
-    
-    @JsonbProperty("accounts")
-    @XmlElement(name = "accounts")
     private List<Account> accounts;
-    
-    @JsonbProperty("pin_reset")
-    @XmlElement(name = "pin_reset")
     private PinReset pinReset;
     
-    @JsonbProperty("phone_number_verification_otp")
-    @XmlElement(name = "phone_number_verification_otp")
-    private String phoneNumberVerificationOTP;
     
-    @JsonbProperty("new_pin")
-    @XmlElement(name = "new_pin")
+    private String phoneNumberVerificationOTP;
     private String newPin;
     
+    
+    public User() {
+        
+    }
+    
+    public long getId() {
+        return id;
+    }
+
+    public void setId(long id) {
+        this.id = id;
+    }
 
     public String getType() {
         return type;
@@ -188,6 +173,22 @@ public class User extends Entity {
         this.addressState = addressState;
     }
 
+    public Date getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(Date updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+
+    public Date getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(Date createdAt) {
+        this.createdAt = createdAt;
+    }
+
     public AuthToken getAuthToken() {
         return authToken;
     }
@@ -251,6 +252,186 @@ public class User extends Entity {
     }
     
     
+    
+    
+    public static User find(int id) throws SQLException, NotFoundException {
+        return find("id", String.valueOf(id));
+    }
+    
+    public static User find(String selection, String selectionArg) throws SQLException, NotFoundException {
+        
+        try (PreparedStatement pstmt = getConnection().prepareStatement(
+                String.format("SELECT * FROM users WHERE %s = ?", selection)
+            )) {
+            
+            pstmt.setString(1, selectionArg);
+            
+            ResultSet result = pstmt.executeQuery();
+            
+            if (result.next()) {
+                return form(result);
+            } else {
+                throw new NotFoundException(__("errors.user_not_found"));
+            }
+            
+        } catch (SQLException ex) {
+            Helpers.stackTracer(ex);
+            throw new SQLException(__("errors.unknown"));
+        }
+    }
+    
+    public static User form(ResultSet result) throws SQLException {
+        return form(result, new User());
+    }
+    
+    public static User form(ResultSet result, String type) throws SQLException {
+        switch (type) {
+            case TYPE_CUSTOMER:
+                return form(result, new Customer());
+            case TYPE_MERCHANT:
+                return form(result, new Merchant());
+            default:
+                return form(result, new User());
+        }
+    }
+    
+    public static User form(ResultSet result, User user) throws SQLException {
+        user.setId(result.getLong("id"));
+        user.setType(result.getString("type"));
+        user.setFirstName(result.getString("first_name"));
+        user.setLastName(result.getString("last_name"));
+        user.setMiddleName(result.getString("middle_name"));
+        user.setPhoneNumber(result.getString("phone_number"));
+        user.setEmail(result.getString("email"));
+        user.setPin(result.getString("pin"));
+        user.setPhoto(result.getString("photo"));
+        user.setAddressStreet(result.getString("address_street"));
+        user.setAddressCity(result.getString("address_city"));
+        user.setAddressState(result.getString("address_state"));
+        user.setUpdatedAt(result.getDate("updated_at"));
+        user.setCreatedAt(result.getDate("created_at"));
+        return user;
+    }
+    
+    
+    public void insert() throws SQLException {
+        
+        String sql = 
+                "INSERT INTO "+TABLE+" "
+                +"(type, "
+                + "first_name, "
+                + "last_name, "
+                + "phone_number, "
+                + "pin) "
+                + "VALUES (?, ?, ?, ?, ?)";
+        
+        try (PreparedStatement pstmt = getConnection().prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            
+            pstmt.setString(1, type);
+            pstmt.setString(2, firstName);
+            pstmt.setString(3, lastName);
+            pstmt.setString(4, phoneNumber);
+            pstmt.setString(5, pin);
+            
+            int rows = pstmt.executeUpdate();
+            
+            if (rows == 0) throw new SQLException("Rows is not inserted for user: "+rows);
+            
+            ResultSet keys = pstmt.getGeneratedKeys();
+            if (keys.next()) setId(keys.getLong(1));
+            
+            this.getAccount(0).insert();
+            
+            this.getAuthToken().insert();
+            
+        } catch (SQLException ex) {
+            Helpers.stackTracer(ex);
+            throw new SQLException(__("errors.insert_user"));
+        }
+    }
+    
+    public void updatePin() throws SQLException {
+        updatePin(false);
+    }
+    
+    public void updatePin(boolean viaReset) throws SQLException {
+        
+        String sql = "UPDATE "+TABLE+" SET pin = ? WHERE id = ?";
+        
+        try (PreparedStatement pstmt = getConnection().prepareStatement(sql)) {
+            
+            getConnection().setAutoCommit(false);
+            
+            pstmt.setString(1, getPin());
+            pstmt.setLong(2, getId());
+            
+            int rows = pstmt.executeUpdate();
+            
+            if (rows == 0) throw new SQLException("Rows is not updated: "+rows+". With user id "+getId());
+            
+            if (viaReset) {
+                getPinReset().setUser(this);
+                getPinReset().delete();
+                
+                ActionLog.log(this, Action.RESET_PIN);
+            } else {
+                ActionLog.log(this, Action.UPDATE_PIN);
+            }
+            
+            getConnection().commit();
+            
+        } catch (SQLException ex) {
+            getConnection().rollback();
+            Helpers.stackTracer(ex);
+            String msg = viaReset ? __("errors.pin_reset_failed") : __("errors.update_pin_failed");
+            throw new SQLException(msg);
+        }
+    }
+    
+    public void updateAddress(long uid) throws SQLException {
+        
+        String sql = "UPDATE "+TABLE+" SET address_street = ?, address_city = ?, address_state = ? WHERE id = ?";
+        
+        PreparedStatement pstmt = getConnection().prepareStatement(sql);
+            
+        pstmt.setString(1, getAddressStreet());
+        pstmt.setString(2, getAddressCity());
+        pstmt.setString(3, getAddressState());
+        pstmt.setLong(4, uid);
+            
+        int rows = pstmt.executeUpdate();
+            
+        if (rows == 0) 
+            throw new SQLException("Rows is not updated: "+rows+". With user id "+getId());
+        
+    }
+    
+    public void findAccounts(long uid) throws SQLException {
+        
+        String sql = "SELECT * FROM "+Account.TABLE+" WHERE user_id = ?";
+        
+        try (PreparedStatement pstmt = getConnection().prepareStatement(sql)) {
+            
+            pstmt.setLong(1, uid);
+            
+            ResultSet result = pstmt.executeQuery();
+            
+            while (result.next()) {
+                addAccount(Account.form(result));
+            }
+            
+        } catch (SQLException ex) {
+            Helpers.stackTracer(ex);
+            throw new SQLException(__("errors.unknown"));
+        }
+        
+    }
+    
+    
+    
+    
 }
+
+
 
 

@@ -1,44 +1,46 @@
 
 package hailandbank.resources;
 
-import hailandbank.db.AccountDb;
-import hailandbank.db.AuthTokenDb;
-import hailandbank.db.CustomerDb;
-import hailandbank.db.MerchantDb;
-import hailandbank.db.PinResetDb;
-import hailandbank.db.UserDb;
 import hailandbank.entities.Account;
 import hailandbank.entities.AuthToken;
 import hailandbank.entities.Customer;
 import hailandbank.entities.Merchant;
 import hailandbank.entities.PinReset;
 import hailandbank.entities.User;
-import hailandbank.locales.AppStrings;
-import hailandbank.utils.MyUtils;
+import hailandbank.utils.Helpers;
 import javax.ws.rs.core.Response;
+import static hailandbank.utils.Helpers.__;
 import hailandbank.utils.InputData;
 import hailandbank.utils.InputErrorException;
 import hailandbank.utils.MyResponse;
 import java.net.URI;
+import java.sql.SQLException;
 import java.util.HashMap;
-import java.util.List;
 import java.util.regex.Pattern;
-import javax.ws.rs.BadRequestException;
-import javax.ws.rs.InternalServerErrorException;
 import javax.ws.rs.NotFoundException;
 
 
-public class UserResource extends Resource {
+public class UserResource {
     
-    public static UserResource get() {
-        return new UserResource();
+    private User authUser;
+    
+    
+    public void setAuthUser(User authUser) {
+        this.authUser = authUser;
     }
     
-    public static UserResource with(User user) {
-        UserResource res = new UserResource();
-        res.setAuthUser(user);
-        return res;
+    public User getAuthUser() {
+        return authUser;
     }
+    
+    public Customer getAuthCustomer() {
+        return (Customer) authUser;
+    }
+    
+    public Merchant getAuthMerchant() {
+        return (Merchant) authUser;
+    }
+    
     
     public boolean phoneNumberIsValid(User user) {
         return user.getPhoneNumber() != null && user.getPhoneNumber().length() == 11;
@@ -54,49 +56,47 @@ public class UserResource extends Resource {
     
     public boolean typeIsValid(User user) {
         return user.getType() != null &&
-                ((user instanceof Merchant && user.getType().equals(User.TYPE_MERCHANT)) || 
-                (user instanceof Customer && user.getType().equals(User.TYPE_CUSTOMER)));
+                (user.getType().equals(User.TYPE_MERCHANT) || user.getType().equals(User.TYPE_CUSTOMER));
     }
     
     private void generateAccount(User user) {
         Account account = new Account();
-        account.setUser(user);
         account.setType(Account.TYPE_SAVINGS);
-        account.setNumber(MyUtils.generateAccountNumber());
+        account.setUser(user);
+        account.generateNumber();
         user.addAccount(account);
     }
     
-    
-    public Response signUp(User user) throws InputErrorException, InternalServerErrorException {
+    public Response signUp(User user) throws InputErrorException, SQLException {
         
         final HashMap<String, InputData> errors = new HashMap<>();
         
         if (!typeIsValid(user)) {
-            errors.put("type", InputData.with(user.getType(), AppStrings.get("errors.user_type_invalid")));
+            errors.put("type", InputData.with(user.getType(), __("errors.user_type_invalid")));
         }
         
         if (user.getFirstName() == null || user.getFirstName().isEmpty()) {
-            errors.put("first_name", InputData.with(user.getFirstName(), AppStrings.get("errors.required_field")));
+            errors.put("firstName", InputData.with(user.getFirstName(), __("errors.required_field")));
         }
         
         if (user.getLastName() == null || user.getLastName().isEmpty()) {
-            errors.put("last_name", InputData.with(user.getLastName(), AppStrings.get("errors.required_field")));
+            errors.put("lastName", InputData.with(user.getLastName(), __("errors.required_field")));
         }
         
         if (!phoneNumberIsValid(user)) {
-            errors.put("phone_number", InputData.with(user.getPhoneNumber(), AppStrings.get("errors.phone_number_invalid")));
+            errors.put("phoneNumber", InputData.with(user.getPhoneNumber(), __("errors.phone_number_invalid")));
         }
         
         if (!pinIsValid(user)) {
-            errors.put("pin", InputData.with(user.getPin(), AppStrings.get("errors.pin_invalid")));
+            errors.put("pin", InputData.with(user.getPin(), __("errors.pin_invalid")));
         }
         
         //validate PHONE NUMBER OTP
         
-        if (!errors.containsKey("phone_number")) {
+        if (!errors.containsKey("phoneNumber")) {
             try {
-                UserDb.findIdByPhoneNumber(user.getPhoneNumber());
-                errors.put("phone_number", InputData.with(user.getPhoneNumber(), AppStrings.get("errors.phone_number_invalid")));
+                User.find("phone_number", user.getPhoneNumber());
+                errors.put("phoneNumber", InputData.with(user.getPhoneNumber(), __("errors.phone_number_invalid")));
             } catch (NotFoundException ex) {}
         }
         
@@ -104,133 +104,131 @@ public class UserResource extends Resource {
             throw new InputErrorException(errors);
         }
         
-        MyUtils.hashPassword(user);
+        Helpers.hashPassword(user);
         
         generateAccount(user);
         
         generatedAuthToken(user);
         
         if (user.getType().equals(User.TYPE_MERCHANT)) {
-            
             ((Merchant)user).setLevel(Merchant.Level.ONE.getValue());
             ((Merchant)user).setTransactionLimit(Merchant.Level.ONE.getTransactionLimit());
             ((Merchant)user).setStatus(Merchant.STATUS_INACTIVE);
-            ((Merchant)user).setCode(MyUtils.generateToken(Merchant.CODE_LEN, Merchant.ALLOWED_CODE_CHARS));
-            
-            MerchantDb.insert((Merchant)user);
-            
-        } else {
-            
-            CustomerDb.insert((Customer)user);
+            ((Merchant)user).setCode(Helpers.generateToken(Merchant.CODE_LEN, Merchant.ALLOWED_CODE_CHARS));
         }
+        
+        user.insert();
         
         user.getAuthToken().setUser(null);
         
-        return Response.created(URI.create("v1/"+user.getType()+"/"+user.getId()))
-                .entity(MyResponse.success(AppStrings.get("success.signup"), user.getAuthToken()))
+        return Response.created(URI.create("/users/"+user.getType()+"/"+user.getId()))
+                .entity(MyResponse.success(__("success.signup"), user.getAuthToken()))
                 .build();
     }
     
     
-    public Response signIn(User user) throws BadRequestException, InternalServerErrorException {
+    public Response signIn(User user) throws InputErrorException, SQLException {
         
-        BadRequestException inputException = new BadRequestException(AppStrings.get("errors.credentials"));
+        InputErrorException inputEx = new InputErrorException(__("errors.credentials"));
         
         if (!phoneNumberIsValid(user) || !pinIsValid(user) || !typeIsValid(user)) {
-            throw inputException;
+            throw inputEx;
         }
         
         String pin = user.getPin();
         
         try {
-            
-            if (user.getType().equals(User.TYPE_MERCHANT)) {
-                user = MerchantDb.find(user.getPhoneNumber());
-            } else {
-                user = CustomerDb.find(user.getPhoneNumber());
+            switch (user.getType()) {
+                case User.TYPE_CUSTOMER:
+                    user = Customer.find("phone_number", user.getPhoneNumber());
+                    break;
+                case User.TYPE_MERCHANT:
+                    user = Merchant.find("phone_number", user.getPhoneNumber());
+                    break;
+                default:
+                    user = User.find("phone_number", user.getPhoneNumber());
             }
-             
         } catch (NotFoundException ex) {
-            throw inputException;
+            throw inputEx;
         }
         
-        if (!MyUtils.comparePassword(pin, user.getPin())) {
-            throw inputException;
+        if (!Helpers.comparePassword(pin, user.getPin())) {
+            throw inputEx;
         }
         
         generatedAuthToken(user);
         
-        AuthTokenDb.insertWithAction(user.getAuthToken());
+        user.getAuthToken().insertWithAction();
         
         user.getAuthToken().setUser(null);
         
-        return Response.ok(MyResponse.success(AppStrings.get("success.credentials"), user.getAuthToken())).build();
+        return Response.ok(MyResponse.success(__("success.credentials"), user.getAuthToken())).build();
     }
     
     public void generatedAuthToken(User user) {
         //implement JWT AUTH
         AuthToken auth = new AuthToken();
         auth.setUser(user);
-        auth.setToken(MyUtils.generateToken(AuthToken.TOKEN_LEN, AuthToken.ALLOWED_TOKEN_CHARS));
-        auth.setExpires(MyUtils.generateExpiringDate(AuthToken.TOKEN_DURATION));
+        auth.setToken(Helpers.generateToken(AuthToken.TOKEN_LEN, AuthToken.ALLOWED_TOKEN_CHARS));
+        auth.generateExpiringDate();
         user.setAuthToken(auth);
     }
     
-    public Response forgotPin(User user) throws BadRequestException, InternalServerErrorException {
+    public Response forgotPin(User user) throws InputErrorException, SQLException {
         
-        BadRequestException inputException = new BadRequestException(AppStrings.get("errors.phone_number_invalid"));
+        InputErrorException inputException = new InputErrorException(__("errors.phone_number_invalid"));
         
         if (!phoneNumberIsValid(user)) {
             throw inputException;
         }
         
         try {
-            user = UserDb.find(user.getPhoneNumber());
+            user = User.find("phone_number", user.getPhoneNumber());
         } catch (NotFoundException ex) {
             throw inputException;
         }
         
         PinReset pr = new PinReset();
         pr.setUser(user);
-        pr.setToken(MyUtils.generateToken(PinReset.TOKEN_LEN, PinReset.ALLOWED_TOKEN_CHARS));
-        pr.setExpires(MyUtils.generateExpiringDate(PinReset.TOKEN_DURATION));
+        pr.setToken(Helpers.generateToken(PinReset.TOKEN_LEN, PinReset.ALLOWED_TOKEN_CHARS));
+        pr.generateExpiringDate();
         
-        PinResetDb.insert(pr);
+        pr.insert();
         
         //SEND TOKEN TO PHONE NUMBER VIA SMS
         
         pr.setUser(null);
         pr.setToken(null);
         
-        return Response.ok(MyResponse.success(AppStrings.get("success.forgotpin"), pr)).build();
+        return Response.ok(MyResponse.success(__("success.forgotpin"), pr)).build();
         
     }
     
     
-    public Response resetPin(User user) throws InputErrorException, InternalServerErrorException {
+    public Response resetPin(User user) throws InputErrorException, SQLException {
         
         final HashMap<String, InputData> errors = new HashMap<>();
         
         if (!phoneNumberIsValid(user)) {
-            errors.put("phone_number", InputData.with(user.getPhoneNumber(), AppStrings.get("errors.phone_number_invalid")));
+            errors.put("phoneNumber", InputData.with(user.getPhoneNumber(), __("errors.phone_number_invalid")));
         }
         
         if (!pinIsValid(user)) {
-            errors.put("pin", InputData.with(user.getPin(), AppStrings.get("errors.pin_invalid")));
+            errors.put("pin", InputData.with(user.getPin(), __("errors.pin_invalid")));
         }
         
         String token = (user.getPinReset() == null ? "" : user.getPinReset().getToken());
         
         if (token == null || token.length() != PinReset.TOKEN_LEN) {
-            errors.put("token", InputData.with(token, AppStrings.get("errors.pin_reset_token_invalid")));
+            errors.put("token", InputData.with(token, __("errors.pin_reset_token_invalid")));
         }
         
         if (!errors.containsKey("token") && !errors.containsKey("phoneNumber")) {
             try {
-                long userId = PinResetDb.findUserIdWhenNotExpired(token, user.getPhoneNumber());
+                long userId = PinReset.findUserIdWhenNotExpired(token, user.getPhoneNumber());
                 user.setId(userId);
             } catch (NotFoundException ex) {
-                errors.put("token", InputData.with(token, AppStrings.get("errors.pin_reset_token_invalid")));
+                errors.put("token", InputData.with(token, __("errors.pin_reset_token_invalid")));
             }
         }
         
@@ -238,54 +236,56 @@ public class UserResource extends Resource {
             throw new InputErrorException(errors);
         }
         
-        MyUtils.hashPassword(user);
+        Helpers.hashPassword(user);
         
-        UserDb.updatePin(user, true);
+        user.updatePin(true);
         
-        return Response.ok(MyResponse.success(AppStrings.get("success.pinreset"))).build();
+        return Response.ok(MyResponse.success(__("success.pinreset"))).build();
     }
     
-    public Response updatePin(User data) throws InputErrorException, InternalServerErrorException {
+    public Response updatePin(User data) throws InputErrorException, SQLException {
         
         final HashMap<String, InputData> errors = new HashMap<>();
         
-        if (!pinIsValid(data) || !MyUtils.comparePassword(data.getPin(), getAuthUser().getPin())) {
-            errors.put("pin", InputData.with(data.getPin(), AppStrings.get("errors.pin_invalid")));
+        if (!pinIsValid(data) || !Helpers.comparePassword(data.getPin(), getAuthUser().getPin())) {
+            errors.put("pin", InputData.with(data.getPin(), __("errors.pin_invalid")));
         }
         
         if (!pinIsValid(data.getNewPin())) {
-            errors.put("new_pin", InputData.with(data.getPin(), AppStrings.get("errors.pin_invalid")));
+            errors.put("newPin", InputData.with(data.getPin(), __("errors.pin_invalid")));
         }
         
         if (!errors.isEmpty()) {
             throw new InputErrorException(errors);
         }
         
-        getAuthUser().setPin(MyUtils.hashPassword(data.getNewPin()));
+        getAuthUser().setPin(Helpers.hashPassword(data.getNewPin()));
         
-        UserDb.updatePin(getAuthUser());
+        getAuthUser().updatePin();
         
-        return Response.ok(MyResponse.success(AppStrings.get("success.pin_update"))).build();
+        return Response.ok(MyResponse.success(__("success.pin_update"))).build();
     }
     
     
-    public Response updateAddress(User data) throws InputErrorException, InternalServerErrorException {
+    public Response updateAddress(User data) throws InputErrorException, SQLException {
         
         final HashMap<String, InputData> errors = new HashMap<>();
         
         if (data.getAddressStreet() == null || data.getAddressStreet().isEmpty()) {
-            errors.put("address_street", InputData.with(data.getAddressStreet(), AppStrings.get("errors.address_street_invalid")));
+            errors.put("addressStreet", InputData.with(data.getAddressStreet(), __("errors.address_street_invalid")));
         }
         
         if (data.getAddressCity() == null || data.getAddressCity().isEmpty()) {
-            errors.put("address_city", InputData.with(data.getAddressCity(), AppStrings.get("errors.address_city_invalid")));
+            errors.put("addressCity", InputData.with(data.getAddressCity(), __("errors.address_city_invalid")));
         }
         
         if (data.getAddressState() == null || data.getAddressState().isEmpty()) {
-            errors.put("address_state", InputData.with(data.getAddressState(), AppStrings.get("errors.address_state_invalid")));
+            errors.put("addressState", InputData.with(data.getAddressState(), __("errors.address_state_invalid")));
         }
         
-        //verify address via a web service :)
+        if (errors.isEmpty()) {
+            //verify address via a web service :)
+        }
         
         if (!errors.isEmpty()) {
             throw new InputErrorException(errors);
@@ -295,27 +295,27 @@ public class UserResource extends Resource {
         getAuthUser().setAddressCity(data.getAddressCity());
         getAuthUser().setAddressState(data.getAddressState());
         
-        if (getAuthUser().getType().equals(User.TYPE_MERCHANT)) {
-            MerchantDb.updateAddress(getAuthMerchant());
-        } else if (getAuthUser().getType().equals(User.TYPE_CUSTOMER))
-           CustomerDb.updateAddress(getAuthCustomer());
-        
-        return Response.ok(MyResponse.success(AppStrings.get("success.address_updated"))).build();
+        if (getAuthUser().getType().equals(User.TYPE_MERCHANT))
+            getAuthMerchant().updateAddress();
+        else if (getAuthUser().getType().equals(User.TYPE_CUSTOMER))
+            getAuthCustomer().updateAddress();
+            
+        return Response.ok(MyResponse.success(__("success.address_updated"))).build();
     }
     
     
-    public Response updateName(Merchant data) throws InputErrorException, InternalServerErrorException {
+    public Response updateName(Merchant data) throws InputErrorException, SQLException {
         
         final HashMap<String, InputData> errors = new HashMap<>();
         
         if (data.getName() == null || data.getName().isEmpty()) {
-            errors.put("name", InputData.with(data.getName(), AppStrings.get("errors.merchant_name_invalid")));
+            errors.put("name", InputData.with(data.getName(), __("errors.merchant_name_invalid")));
         }
         
         if (errors.isEmpty()) {
             try {
-                MerchantDb.find("name", data.getName());
-                errors.put("name", InputData.with(data.getName(), AppStrings.get("errors.merchant_name_invalid")));
+                Merchant.find("name", data.getName());
+                errors.put("name", InputData.with(data.getName(), __("errors.merchant_name_invalid")));
             } catch (NotFoundException ex) {}
         }
         
@@ -325,20 +325,18 @@ public class UserResource extends Resource {
         
         getAuthMerchant().setName(data.getName());
         
-        MerchantDb.updateName(getAuthMerchant());
+        getAuthMerchant().updateName();
         
-        return Response.ok(MyResponse.success(AppStrings.get("success.merchant_name_updated"))).build();
+        return Response.ok(MyResponse.success(__("success.merchant_name_updated"))).build();
     }
     
-    public Response getMerchantData() throws InternalServerErrorException {
-        List<Account> accounts = AccountDb.findAllByUser(getAuthMerchant().getId());
-        getAuthMerchant().setAccounts(accounts);
+    public Response getMerchantData() throws SQLException {
+        getAuthMerchant().findAccounts(getAuthMerchant().getUserId());
         return getData();
     }
     
-    public Response getCustomerData() throws InternalServerErrorException {
-        List<Account> accounts = AccountDb.findAllByUser(getAuthMerchant().getId());
-        getAuthCustomer().setAccounts(accounts);
+    public Response getCustomerData() throws SQLException {
+        getAuthCustomer().findAccounts(getAuthCustomer().getUserId());
         return getData();
     }
     

@@ -5,11 +5,12 @@ import java.util.Date;
 import javax.xml.bind.annotation.XmlRootElement;
 
 
-@XmlRootElement(name = "settlement_account")
-public class SettlementAccount extends Entity {
+@XmlRootElement
+public class SettlementAccount {
     
     public static final String TABLE = "settlement_accounts";
     
+    private long id;
     
     private Merchant merchant;
     
@@ -19,6 +20,16 @@ public class SettlementAccount extends Entity {
     
     private int type;
     
+    private Date createdAt;
+    
+    
+    public long getId() {
+        return id;
+    }
+
+    public void setId(long id) {
+        this.id = id;
+    }
 
     public Merchant getMerchant() {
         return merchant;
@@ -51,7 +62,16 @@ public class SettlementAccount extends Entity {
     public void setType(int type) {
         this.type = type;
     }
+
+    public Date getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(Date createdAt) {
+        this.createdAt = createdAt;
+    }
+    
+    
     
     
 }
-

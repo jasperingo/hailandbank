@@ -1,41 +1,42 @@
+
 package hailandbank.filters;
 
 
+import static hailandbank.utils.Helpers.__;
 import hailandbank.utils.MyResponse;
-import hailandbank.utils.MyUtils;
 import java.io.IOException;
 import java.io.InputStream;
-import javax.ws.rs.BadRequestException;
 import javax.ws.rs.HttpMethod;
 import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerRequestFilter;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.Provider;
 import org.apache.commons.io.IOUtils;
+import org.json.simple.JSONValue;
+import org.json.simple.parser.ParseException;
 
 
 @Provider
-public class RequestEntityFilter extends MyFilter implements ContainerRequestFilter {
+public class RequestEntityFilter implements ContainerRequestFilter {
 
     @Override
     public void filter(ContainerRequestContext requestContext) {
-        if (requestContext.getMethod().equals(HttpMethod.POST) || 
+        if ((requestContext.getMethod().equals(HttpMethod.POST) || 
                 requestContext.getMethod().equals(HttpMethod.PUT) ||
-                requestContext.getMethod().equals(HttpMethod.DELETE))
+                requestContext.getMethod().equals(HttpMethod.DELETE)) && 
+                !requestContext.getUriInfo().getPath().equals("users/signout"))
             validate(requestContext);
     }
-    
+
     private void validate(ContainerRequestContext requestContext) {
         try {
             String json = IOUtils.toString(requestContext.getEntityStream(), "UTF-8");
-            if (json == null || json.isEmpty()) {
-                throw new BadRequestException();
-            }
+            JSONValue.parseWithException(json);
             InputStream in = IOUtils.toInputStream(json, "UTF-8");
             requestContext.setEntityStream(in);
         } catch (IOException ex) {
             abortServer(requestContext);
-        } catch (BadRequestException ex) {
+        } catch (ParseException ex) {
             abort(requestContext);
         }
     }
@@ -43,8 +44,7 @@ public class RequestEntityFilter extends MyFilter implements ContainerRequestFil
     private void abort(ContainerRequestContext requestContext) {
         requestContext.abortWith(
                 Response.status(Response.Status.BAD_REQUEST)
-                        .entity(MyResponse.error("HTTP 400 Bad Request"))
-                        .type(MyUtils.getRequestAcceptedMedia(headers))
+                        .entity(MyResponse.error(__("errors.request_body_invalid")))
                         .build()
         );
     }
@@ -52,10 +52,15 @@ public class RequestEntityFilter extends MyFilter implements ContainerRequestFil
     private void abortServer(ContainerRequestContext requestContext) {
         requestContext.abortWith(
                 Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                        .entity(MyResponse.error("HTTP 500 Internal Server Error"))
-                        .type(MyUtils.getRequestAcceptedMedia(headers))
+                        .entity(MyResponse.error(__("errors.unknown")))
                         .build()
         );
     }
 }
+
+
+
+
+
+
 

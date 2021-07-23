@@ -1,29 +1,18 @@
 
 package hailandbank.utils;
 
+import org.glassfish.jersey.jackson.JacksonFeature;
 import java.util.Set;
+import org.glassfish.jersey.server.ResourceConfig;
 
 
-@javax.ws.rs.ApplicationPath("api")
-public class ApplicationConfig extends javax.ws.rs.core.Application {
+public class ApplicationConfig extends ResourceConfig {
 
-    @Override
-    public Set<Class<?>> getClasses() {
-        Set<Class<?>> resources = new java.util.HashSet<>();
-        //addRestResourceClasses(resources);
-        return resources;
+    public ApplicationConfig(Set<Class<?>> classes) {
+        super(classes);
+        register(JacksonFeature.class);
     }
 
-    /**
-     * Do not modify addRestResourceClasses() method.
-     * It is automatically populated with
-     * all resources defined in the project.
-     * If required, comment out calling this method in getClasses().
-     */
-    /*private void addRestResourceClasses(Set<Class<?>> resources) {
-       
-    }*/
-    
 }
 
 

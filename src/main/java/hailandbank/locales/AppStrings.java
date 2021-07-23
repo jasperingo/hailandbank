@@ -2,22 +2,10 @@
 package hailandbank.locales;
 
 import java.util.ListResourceBundle;
-import java.util.MissingResourceException;
-import java.util.ResourceBundle;
 
 
 public class AppStrings extends ListResourceBundle {
-    
-    private static final ResourceBundle lang = ResourceBundle.getBundle("hailandbank.locales.AppStrings");
-    
-    public static String get(String s) {
-        try {
-            return lang.getString(s);
-        } catch (MissingResourceException e) {
-            return s;
-        }
-    }
-    
+
     @Override
     protected Object[][] getContents() {
         
