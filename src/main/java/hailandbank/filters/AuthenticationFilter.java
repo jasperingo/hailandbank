@@ -1,13 +1,13 @@
 
 package hailandbank.filters;
 
-import hailandbank.entities.AuthToken;
+import hailandbank.db.AuthTokenDb;
 import hailandbank.entities.User;
-import hailandbank.utils.Helpers;
+import hailandbank.locales.AppStrings;
 import hailandbank.utils.MyResponse;
-import static hailandbank.utils.Helpers.__;
-import java.sql.SQLException;
+import hailandbank.utils.MyUtils;
 import javax.annotation.Priority;
+import javax.ws.rs.InternalServerErrorException;
 import javax.ws.rs.NotFoundException;
 import javax.ws.rs.Priorities;
 import javax.ws.rs.container.ContainerRequestContext;
@@ -20,7 +20,7 @@ import javax.ws.rs.ext.Provider;
 @Auth
 @Provider
 @Priority(Priorities.AUTHENTICATION)
-public class AuthenticationFilter implements ContainerRequestFilter {
+public class AuthenticationFilter extends MyFilter implements ContainerRequestFilter {
     
     private static final String SCHEME = "Bearer";
     
@@ -54,7 +54,8 @@ public class AuthenticationFilter implements ContainerRequestFilter {
         requestContext.abortWith(
                 Response.status(Response.Status.UNAUTHORIZED)
                         .header(HttpHeaders.WWW_AUTHENTICATE, SCHEME+" realm=\"jwt\"")
-                        .entity(MyResponse.error(__("errors.unauthenticated")))
+                        .entity(MyResponse.error(AppStrings.get("errors.unauthenticated")))
+                        .type(MyUtils.getRequestAcceptedMedia(headers))
                         .build()
         );
     }
@@ -62,7 +63,8 @@ public class AuthenticationFilter implements ContainerRequestFilter {
     private void abortServer(ContainerRequestContext requestContext) {
         requestContext.abortWith(
                 Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                        .entity(MyResponse.error(__("errors.unknown")))
+                        .entity(MyResponse.error("HTTP 500 Internal Server Error"))
+                        .type(MyUtils.getRequestAcceptedMedia(headers))
                         .build()
         );
     }
@@ -70,13 +72,12 @@ public class AuthenticationFilter implements ContainerRequestFilter {
     protected int validate(String token, ContainerRequestContext requestContext){
         // JWT VALIDATION
         try {
-            User user = AuthToken.findUserWhenNotExpired(token);
+            User user = AuthTokenDb.findUserWhenNotExpired(token);
             requestContext.setProperty("user", user);
             return 0;
         } catch (NotFoundException ex) {
             return 1;
-        } catch (SQLException ex) {
-            Helpers.stackTracer(ex);
+        } catch (InternalServerErrorException ex) {
             return 2;
         }
     }

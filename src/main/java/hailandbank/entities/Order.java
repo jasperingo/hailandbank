@@ -4,7 +4,7 @@ package hailandbank.entities;
 import java.util.Date;
 
 
-public class Order extends Entity {
+public class Order {
     
     
     private long id;
