@@ -1,23 +1,50 @@
 
 package hailandbank.entities;
 
-import hailandbank.utils.Helpers;
+import java.time.LocalDateTime;
+import javax.json.bind.annotation.JsonbProperty;
+import javax.xml.bind.annotation.XmlAccessType;
+import javax.xml.bind.annotation.XmlAccessorType;
+import javax.xml.bind.annotation.XmlElement;
 
-import java.sql.Connection;
 
-
-public class Entity {
+@XmlAccessorType(XmlAccessType.FIELD)
+abstract public class Entity {
     
-    private static Connection connection = null;
+    protected long id;
+    
+    @JsonbProperty("updated_at")
+    @XmlElement(name = "updated_at")
+    protected LocalDateTime updatedAt;
+    
+    @JsonbProperty("created_at")
+    @XmlElement(name = "created_at")
+    protected LocalDateTime createdAt;
+    
+    
+    public long getId() {
+        return id;
+    }
 
-    protected static Connection getConnection() {
-        if (connection == null) {
-            connection = Helpers.getDBConnection();
-        }
-        
-        return connection;
+    public void setId(long id) {
+        this.id = id;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
     }
     
 }
-
 

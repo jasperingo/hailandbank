@@ -12,10 +12,10 @@ public class InputData {
     private String error;
     
     public InputData(String value, String error) {
-        this.setValue(value);
         this.error = error;
+        this.value = value == null ? "" : value;
     }
-
+    
     public String getValue() {
         return value;
     }
