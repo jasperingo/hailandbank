@@ -5,8 +5,10 @@ import hailandbank.utils.MyResponse;
 import hailandbank.utils.MyUtils;
 import java.io.IOException;
 import java.io.InputStream;
+import javax.annotation.Priority;
 import javax.ws.rs.BadRequestException;
 import javax.ws.rs.HttpMethod;
+import javax.ws.rs.Priorities;
 import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerRequestFilter;
 import javax.ws.rs.core.Response;
@@ -15,6 +17,7 @@ import org.apache.commons.io.IOUtils;
 
 
 @Provider
+@Priority(Priorities.ENTITY_CODER)
 public class RequestEntityFilter extends MyFilter implements ContainerRequestFilter {
 
     @Override

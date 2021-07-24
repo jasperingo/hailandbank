@@ -1,7 +1,9 @@
 
 package hailandbank.entities;
 
-import java.util.Date;
+
+import javax.json.bind.annotation.JsonbProperty;
+import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
 
@@ -13,11 +15,13 @@ public class SettlementAccount extends Entity {
     
     private Merchant merchant;
     
+    @JsonbProperty("bank_name")
+    @XmlElement(name = "bank_name")
     private String bankName;
     
     private String number;
     
-    private int type;
+    private String type;
     
 
     public Merchant getMerchant() {
@@ -44,11 +48,11 @@ public class SettlementAccount extends Entity {
         this.number = number;
     }
 
-    public int getType() {
+    public String getType() {
         return type;
     }
 
-    public void setType(int type) {
+    public void setType(String type) {
         this.type = type;
     }
     

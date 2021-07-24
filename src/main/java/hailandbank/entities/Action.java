@@ -25,6 +25,10 @@ public class Action extends Entity {
     
     public static Action UPDATE_MERCHANT_NAME = new Action(8);
     
+    public static Action ADD_SETTLEMENT_ACTION = new Action(9);
+    
+    public static Action UPDATE_SETTLEMENT_ACTION = new Action(10);
+    
     
     public static final String TABLE = "actions";
     

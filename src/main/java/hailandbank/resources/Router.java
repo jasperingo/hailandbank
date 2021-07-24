@@ -4,6 +4,7 @@ package hailandbank.resources;
 
 import hailandbank.entities.Customer;
 import hailandbank.entities.Merchant;
+import hailandbank.entities.SettlementAccount;
 import hailandbank.entities.User;
 import hailandbank.filters.Auth;
 import hailandbank.filters.CAuth;
@@ -125,6 +126,15 @@ public class Router {
     public Response getCustomerData() throws InternalServerErrorException {
         return UserResource.with(getAuthUser()).getCustomerData();
     }
+    
+    @MAuth
+    @POST
+    @Path("settlement-account/add")
+    public Response addMerchantSettlementAccount(SettlementAccount sa) 
+            throws InputErrorException, InternalServerErrorException {
+        return SettlementAccountResource.with(getAuthUser()).add(sa);
+    }
+    
     
 }
 

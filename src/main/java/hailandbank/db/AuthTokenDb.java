@@ -89,11 +89,11 @@ public class AuthTokenDb extends Database {
     public static User findUserWhenNotExpired(String token) 
             throws InternalServerErrorException, NotFoundException {
         
-        String sql = String.format("SELECT %s, a.id AS auth_id "
-                + "FROM %S AS a INNER JOIN %S AS b "
-                + "ON a.user_id = b.id "
-                + "WHERE a.token = ? AND TIMESTAMP(a.expires) > NOW()", 
-                User.TABLE_COLUMNS, AuthToken.TABLE, User.TABLE);
+        String sql = String.format("SELECT %s, %s"
+                + "FROM %S INNER JOIN %S AS b "
+                + "ON auth_tokens.user_id = b.id "
+                + "WHERE auth_tokens.token = ? AND TIMESTAMP(auth_tokens.expires) > NOW()", 
+                User.TABLE_COLUMNS, AuthToken.TABLE_COLUMNS, AuthToken.TABLE, User.TABLE);
         
         return findUser(sql, token, "");
     }
@@ -101,13 +101,13 @@ public class AuthTokenDb extends Database {
     public static Merchant findMerchantWhenNotExpired(String token) 
             throws InternalServerErrorException, NotFoundException {
         
-        String sql = String.format("SELECT %s, %s, a.id AS auth_id "
-                + "FROM %s AS a INNER JOIN %s "
-                + "ON a.user_id = merchants.user_id "
+        String sql = String.format("SELECT %s, %s, %s "
+                + "FROM %s INNER JOIN %s "
+                + "ON auth_tokens.user_id = merchants.user_id "
                 + "INNER JOIN %s "
                 + "ON merchants.user_id = users.id "
-                + "WHERE a.token = ? AND TIMESTAMP(a.expires) > NOW()", 
-                User.TABLE_COLUMNS, Merchant.TABLE_COLUMNS, AuthToken.TABLE, Merchant.TABLE, User.TABLE);
+                + "WHERE auth_tokens.token = ? AND TIMESTAMP(auth_tokens.expires) > NOW()", 
+                User.TABLE_COLUMNS, Merchant.TABLE_COLUMNS, AuthToken.TABLE_COLUMNS, AuthToken.TABLE, Merchant.TABLE, User.TABLE);
        
         return (Merchant)findUser(sql, token, User.TYPE_MERCHANT);
     }
@@ -115,13 +115,13 @@ public class AuthTokenDb extends Database {
     public static Customer findCustomerWhenNotExpired(String token) 
             throws InternalServerErrorException, NotFoundException {
         
-        String sql = String.format("SELECT %s, %s, a.id AS auth_id "
-                + "FROM %s AS a INNER JOIN %s "
-                + "ON a.user_id = customers.user_id "
+        String sql = String.format("SELECT %s, %s, %s "
+                + "FROM %s INNER JOIN %s "
+                + "ON auth_tokens.user_id = customers.user_id "
                 + "INNER JOIN %s "
                 + "ON customers.user_id = users.id "
-                + "WHERE a.token = ? AND TIMESTAMP(a.expires) > NOW()", 
-                User.TABLE_COLUMNS, Customer.TABLE_COLUMNS, AuthToken.TABLE, Customer.TABLE, User.TABLE);
+                + "WHERE auth_tokens.token = ? AND TIMESTAMP(auth_tokens.expires) > NOW()", 
+                User.TABLE_COLUMNS, Customer.TABLE_COLUMNS, AuthToken.TABLE_COLUMNS, AuthToken.TABLE, Customer.TABLE, User.TABLE);
         
         return (Customer)findUser(sql, token, User.TYPE_CUSTOMER);
     }

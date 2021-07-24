@@ -6,7 +6,7 @@ import hailandbank.entities.Merchant;
 import hailandbank.entities.User;
 
 
-public class Resource {
+abstract public class Resource {
     
     
     private User authUser;

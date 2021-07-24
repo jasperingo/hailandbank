@@ -1,47 +1,100 @@
 
 package hailandbank.entities;
 
-import java.util.Date;
+import javax.json.bind.annotation.JsonbProperty;
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlRootElement;
 
 
-public class Order {
+@XmlRootElement(name = "order")
+public class Order extends Entity {
+    
+    public static final String TABLE = "orders";
+    
+    public static final String STATUS_PENDING = "pending";
+    
+    public static final String STATUS_FAILED = "failed";
+    
+    public static final String STATUS_PROCESSING = "processing";
+    
+    public static final String STATUS_CANCELLED = "cancelled";
+    
+    public static final String STATUS_FULFILLED = "fulfilled";
+     
+     
+    public static enum Type {
+        
+        CASH_DELIVERY("withdrawal", "indoor"),
+        
+        CASH_PICK_UP("deposit", "indoor");
+        
+        private String value;
+        
+        private String mode;
+
+        private Type(String value, String mode) {
+            this.value = value;
+            this.mode = mode;
+        }
+
+        public String getValue() {
+            return value;
+        }
+
+        public void setValue(String value) {
+            this.value = value;
+        }
+
+        public String getMode() {
+            return mode;
+        }
+
+        public void setMode(String mode) {
+            this.mode = mode;
+        }
+        
+    }
     
     
-    private long id;
     
     private Account account;
+    
+    @JsonbProperty("merchant_account")
+    @XmlElement(name = "merchant_account")
+    private Account merchantAccount;
     
     private String type;
     
     private String mode;
     
-    private String referenceCode;
-    
     private String status;
     
     private double amount;
     
+    private double charge;
+    
+    @JsonbProperty("address_street")
+    @XmlElement(name = "address_street")
     private String addressStreet;
     
+    @JsonbProperty("address_city")
+    @XmlElement(name = "address_city")
     private String addressCity;
     
+    @JsonbProperty("address_state")
+    @XmlElement(name = "address_state")
     private String addressState;
     
+    @JsonbProperty("address_x")
+    @XmlElement(name = "address_x")
     private double addressX;
     
+    @JsonbProperty("address_y")
+    @XmlElement(name = "address_y")
     private double addressY;
     
-    private Date createdAt;
     
-    
-    public long getId() {
-        return id;
-    }
-
-    public void setId(long id) {
-        this.id = id;
-    }
-
+   
     public Account getAccount() {
         return account;
     }
@@ -50,6 +103,14 @@ public class Order {
         this.account = account;
     }
 
+    public Account getMerchantAccount() {
+        return merchantAccount;
+    }
+
+    public void setMerchantAccount(Account merchantAccount) {
+        this.merchantAccount = merchantAccount;
+    }
+    
     public String getType() {
         return type;
     }
@@ -64,14 +125,6 @@ public class Order {
 
     public void setMode(String mode) {
         this.mode = mode;
-    }
-
-    public String getReferenceCode() {
-        return referenceCode;
-    }
-
-    public void setReferenceCode(String referenceCode) {
-        this.referenceCode = referenceCode;
     }
 
     public String getStatus() {
@@ -90,6 +143,14 @@ public class Order {
         this.amount = amount;
     }
 
+    public double getCharge() {
+        return charge;
+    }
+
+    public void setCharge(double charge) {
+        this.charge = charge;
+    }
+    
     public String getAddressStreet() {
         return addressStreet;
     }
@@ -129,15 +190,6 @@ public class Order {
     public void setAddressY(double addressY) {
         this.addressY = addressY;
     }
-
-    public Date getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(Date createdAt) {
-        this.createdAt = createdAt;
-    }
-    
     
     
     

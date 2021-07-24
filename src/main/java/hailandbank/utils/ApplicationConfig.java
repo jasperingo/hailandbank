@@ -4,7 +4,7 @@ package hailandbank.utils;
 import java.util.Set;
 
 
-@javax.ws.rs.ApplicationPath("api")
+@javax.ws.rs.ApplicationPath("")
 public class ApplicationConfig extends javax.ws.rs.core.Application {
 
     @Override

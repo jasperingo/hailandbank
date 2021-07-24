@@ -38,11 +38,13 @@ public class AppStrings extends ListResourceBundle {
             {"errors.insert_auth_token", "Auth token failed to be inserted into the database."},
             {"errors.insert_account", "Account failed to be inserted into the database."},
             {"errors.insert_pin_reset", "User pin reset failed to be inserted into the database."},
+            {"errors.insert_user", "Settlement account failed to be inserted into the database."},
             {"errors.unknown", "An unknown error occured."},
             {"errors.unauthenticated", "Authentication failed."},
             {"errors.credentials", "Credientials are incorrect."},
             {"errors.user_not_found", "User do not exist."},
             {"errors.required_field", "Field is required."},
+            {"errors.invalid_field", "Field is invalid."},
             {"errors.user_type_invalid", "Type is invalid."},
             {"errors.phone_number_invalid", "Phone number is invalid."},
             {"errors.pin_invalid", "Pin is invalid."},
@@ -56,9 +58,12 @@ public class AppStrings extends ListResourceBundle {
             
             {"errors.merchant_name_invalid", "Merchant name is invalid"},
             {"errors.update_merchant_name_failed", "Merchant name failed to be updated in the database."},
-            
+            {"errors.bank_name_invalid", "Bank name is invalid"},
             
         };
     }
     
 }
+
+
+
