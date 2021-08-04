@@ -31,10 +31,16 @@ public class AppStrings extends ListResourceBundle {
             {"success.address_updated", "Address has been updated."},
             {"success.pin_updated", "Pin has been updated."},
             {"success.merchant_name_updated", "Merchant name has been updated."},
+            {"success.settlement_account_updated", "Settlement account has been updated."},
+            {"success.transaction_inserted", "Transaction has been inserted."},
+            {"success.order_inserted", "Order has been inserted."},
+            {"success.order_processing", "Order is being processed."},
+            {"success.order_fulfilled", "Order is fulfilled."},
             
             {"errors.request_body_invalid", "Request body is invalid."},
             {"errors.input_fields", "Input fields have errors."},
             {"errors.insert_user", "User failed to be inserted into the database."},
+            {"errors.insert_order", "Order failed to be inserted into the database."},
             {"errors.insert_auth_token", "Auth token failed to be inserted into the database."},
             {"errors.insert_account", "Account failed to be inserted into the database."},
             {"errors.insert_pin_reset", "User pin reset failed to be inserted into the database."},
@@ -59,6 +65,20 @@ public class AppStrings extends ListResourceBundle {
             {"errors.merchant_name_invalid", "Merchant name is invalid"},
             {"errors.update_merchant_name_failed", "Merchant name failed to be updated in the database."},
             {"errors.bank_name_invalid", "Bank name is invalid"},
+            
+            {"errors.amount_less_than_minimum", "Amount can't be less than N100.00"},
+            {"errors.amount_more_than_maximum", "Amount can't be more than your account balance"},
+            {"errors.account_is_invalid", "Account is invalid"},
+            {"errors.account_balance_is_low", "Account balance is low"},
+            {"errors.insert_transaction", "Transaction failed to be inserted into the database."},
+            
+            {"errors.order_invalid", "Order is invalid"},
+            {"errors.order_type_invalid", "Order type is invalid"},
+            {"errors.order_being_processed", "Order is being processed already"},
+            {"errors.order_amount_minimum_invalid", "Amount is less than minimum order"},
+            {"errors.order_amount_maximum_invalid", "Amount is more than maximum order"},
+            {"errors.order_amount_account_balance_invalid", "Amount is more than your account balance"},
+            
             
         };
     }

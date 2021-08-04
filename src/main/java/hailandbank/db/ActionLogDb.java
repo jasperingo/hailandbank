@@ -14,7 +14,7 @@ import javax.ws.rs.InternalServerErrorException;
 public class ActionLogDb extends Database {
     
     
-     public static void log(User user, Action action) throws InternalServerErrorException {
+    public static void log(User user, Action action) throws InternalServerErrorException {
         ActionLog log = new ActionLog();
         log.setUser(user);
         log.setAction(action);

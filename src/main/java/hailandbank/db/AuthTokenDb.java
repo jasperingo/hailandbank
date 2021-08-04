@@ -89,9 +89,9 @@ public class AuthTokenDb extends Database {
     public static User findUserWhenNotExpired(String token) 
             throws InternalServerErrorException, NotFoundException {
         
-        String sql = String.format("SELECT %s, %s"
-                + "FROM %S INNER JOIN %S AS b "
-                + "ON auth_tokens.user_id = b.id "
+        String sql = String.format("SELECT %s, %s "
+                + "FROM %S INNER JOIN %s "
+                + "ON auth_tokens.user_id = users.id "
                 + "WHERE auth_tokens.token = ? AND TIMESTAMP(auth_tokens.expires) > NOW()", 
                 User.TABLE_COLUMNS, AuthToken.TABLE_COLUMNS, AuthToken.TABLE, User.TABLE);
         

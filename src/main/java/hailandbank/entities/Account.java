@@ -22,6 +22,8 @@ public class Account extends Entity {
     
     private String number;
     
+    private double balance;
+    
     
 
     public User getUser() {
@@ -46,6 +48,14 @@ public class Account extends Entity {
 
     public void setNumber(String number) {
         this.number = number;
+    }
+
+    public double getBalance() {
+        return balance;
+    }
+
+    public void setBalance(double balance) {
+        this.balance = balance;
     }
     
     

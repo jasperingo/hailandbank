@@ -12,6 +12,23 @@ public class Transaction extends Entity {
     
     public static final String TABLE = "transactions";
     
+    public static final String TABLE_COLUMNS = 
+            "transactions.id, "
+            + "transactions.reference_code, "
+            + "transactions.order_id, "
+            + "transactions.account_id, "
+            + "transactions.type, "
+            + "transactions.status, "
+            + "transactions.amount, "
+            + "transactions.created_at";
+    
+    
+    public static final int REFERENCE_CODE_LEN = 6;
+    
+    public static final String ALLOWED_REFERENCE_CODE_CHARS = 
+            "1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    
+    
     public static final String STATUS_PENDING = "pending";
     
     public static final String STATUS_FAILED = "failed";
@@ -21,6 +38,21 @@ public class Transaction extends Entity {
     public static final String STATUS_CANCELLED = "cancelled";
     
     public static final String STATUS_APPROVED = "approved";
+    
+    
+    public static final String TYPE_DEPOSIT = "deposit";
+    
+    public static final String TYPE_WITHDRAW = "withdraw";
+    
+    public static final String TYPE_ORDER_CHARGE = "order charge";
+    
+    public static final String TYPE_ORDER_PROFIT = "order profit";
+    
+    public static final String TYPE_ORDER_REFUND = "order refund";
+    
+    public static final String TYPE_ORDER_AMOUNT = "order amount";
+    
+    public static final String TYPE_ORDER_SEEVICE_FEE = "order service fee";
     
     
     @JsonbProperty("reference_code")

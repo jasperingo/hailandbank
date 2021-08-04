@@ -184,7 +184,7 @@ public class MerchantDb extends Database {
         PreparedStatement pstmt = getConnection().prepareStatement(sql);
         
         pstmt.setString(1, value);
-        pstmt.setLong(4, user.getMerchantId());
+        pstmt.setLong(2, user.getMerchantId());
             
         int rows = pstmt.executeUpdate();
             

@@ -11,6 +11,23 @@ public class Order extends Entity {
     
     public static final String TABLE = "orders";
     
+    public static final String TABLE_COLUMNS = 
+            "orders.id, "
+            + "orders.account_id, "
+            + "orders.merchant_account_id, "
+            + "orders.type, "
+            + "orders.mode, "
+            + "orders.status, "
+            + "orders.amount, "
+            + "orders.charge, "
+            + "orders.address_street, "
+            + "orders.address_city, "
+            + "orders.address_state, "
+            + "orders.address_x, "
+            + "orders.address_y, "
+            + "orders.created_at";
+    
+    
     public static final String STATUS_PENDING = "pending";
     
     public static final String STATUS_FAILED = "failed";
@@ -20,8 +37,17 @@ public class Order extends Entity {
     public static final String STATUS_CANCELLED = "cancelled";
     
     public static final String STATUS_FULFILLED = "fulfilled";
-     
-     
+    
+    
+    public static final double MINIMUM_AMOUNT = 1000.00;
+    
+    public static final double MAXIMUM_AMOUNT = 100000.00;
+    
+    public static final double CHARGE = 100.00;
+    
+    public static final double SERVICE_FEE = 20.00;
+    
+    
     public static enum Type {
         
         CASH_DELIVERY("withdrawal", "indoor"),
@@ -54,7 +80,6 @@ public class Order extends Entity {
         }
         
     }
-    
     
     
     private Account account;

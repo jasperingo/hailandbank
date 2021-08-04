@@ -29,6 +29,12 @@ public class Action extends Entity {
     
     public static Action UPDATE_SETTLEMENT_ACTION = new Action(10);
     
+    public static Action FUND_ACCOUNT = new Action(11);
+    
+    public static Action WITHDRAW_FROM_ACCOUNT = new Action(12);
+    
+    public static Action PLACE_ORDER = new Action(13);
+    
     
     public static final String TABLE = "actions";
     

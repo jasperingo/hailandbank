@@ -6,12 +6,14 @@ import hailandbank.db.AuthTokenDb;
 import hailandbank.db.CustomerDb;
 import hailandbank.db.MerchantDb;
 import hailandbank.db.PinResetDb;
+import hailandbank.db.SettlementAccountDb;
 import hailandbank.db.UserDb;
 import hailandbank.entities.Account;
 import hailandbank.entities.AuthToken;
 import hailandbank.entities.Customer;
 import hailandbank.entities.Merchant;
 import hailandbank.entities.PinReset;
+import hailandbank.entities.SettlementAccount;
 import hailandbank.entities.User;
 import hailandbank.locales.AppStrings;
 import hailandbank.utils.MyUtils;
@@ -265,7 +267,7 @@ public class UserResource extends Resource {
         
         UserDb.updatePin(getAuthUser());
         
-        return Response.ok(MyResponse.success(AppStrings.get("success.pin_update"))).build();
+        return Response.ok(MyResponse.success(AppStrings.get("success.pin_updated"))).build();
     }
     
     
@@ -308,7 +310,7 @@ public class UserResource extends Resource {
         
         final HashMap<String, InputData> errors = new HashMap<>();
         
-        if (data.getName() == null || data.getName().isEmpty()) {
+        if (data.getName() == null || data.getName().length() < 3) {
             errors.put("name", InputData.with(data.getName(), AppStrings.get("errors.merchant_name_invalid")));
         }
         
@@ -331,13 +333,15 @@ public class UserResource extends Resource {
     }
     
     public Response getMerchantData() throws InternalServerErrorException {
+        List<SettlementAccount> sAccounts = SettlementAccountDb.findAllByMerchant(getAuthMerchant().getMerchantId());
         List<Account> accounts = AccountDb.findAllByUser(getAuthMerchant().getId());
         getAuthMerchant().setAccounts(accounts);
+        getAuthMerchant().setSettlementAccounts(sAccounts);
         return getData();
     }
     
     public Response getCustomerData() throws InternalServerErrorException {
-        List<Account> accounts = AccountDb.findAllByUser(getAuthMerchant().getId());
+        List<Account> accounts = AccountDb.findAllByUser(getAuthCustomer().getId());
         getAuthCustomer().setAccounts(accounts);
         return getData();
     }

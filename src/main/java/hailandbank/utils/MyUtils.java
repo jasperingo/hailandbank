@@ -4,6 +4,7 @@ package hailandbank.utils;
 import com.password4j.Hash;
 import com.password4j.Password;
 import hailandbank.entities.Account;
+import hailandbank.entities.Order;
 import hailandbank.entities.User;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
@@ -72,6 +73,17 @@ public class MyUtils {
     public static void exceptionLogger(Exception ex, String className) {
         Logger.getLogger(className).log(Level.SEVERE, null, ex);
     }
+    
+    public static boolean orderTypeIsValid(String type, String mode) {
+        
+        for (Order.Type o : Order.Type.values()) {
+            if (o.getValue().equals(type) && o.getMode().equals(mode))
+                return true;
+        }
+        
+        return false;
+    }
+    
     
 }
 

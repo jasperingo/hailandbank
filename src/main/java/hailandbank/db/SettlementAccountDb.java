@@ -10,6 +10,9 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import javax.ws.rs.InternalServerErrorException;
 
 
@@ -137,7 +140,40 @@ public class SettlementAccountDb extends Database {
         
     }
     
+    public static SettlementAccount form(ResultSet result) throws SQLException {
+        SettlementAccount account = new SettlementAccount();
+        account.setId(result.getLong("id"));
+        account.setBankName(result.getString("bank_name"));
+        account.setNumber(result.getString("number"));
+        account.setType(result.getString("type"));
+        account.setCreatedAt((LocalDateTime)result.getObject("created_at"));
+        return account;
+    }
     
+    public static List<SettlementAccount> findAllByMerchant(long merchantId) throws InternalServerErrorException {
+        
+        try (PreparedStatement pstmt = getConnection().prepareStatement(
+                String.format("SELECT * FROM %s WHERE merchant_id = ?", SettlementAccount.TABLE)
+            )) {
+            
+            pstmt.setLong(1, merchantId);
+            
+            ResultSet result = pstmt.executeQuery();
+            
+            List<SettlementAccount> list = new ArrayList<>();
+            
+            while (result.next()) {
+                list.add(form(result));
+            }
+            
+            return list;
+            
+        } catch (SQLException ex) {
+            MyUtils.exceptionLogger(ex, SettlementAccountDb.class.getName());
+            throw new InternalServerErrorException(AppStrings.get("errors.unknown"));
+        }
+    }
+        
 }
 
 

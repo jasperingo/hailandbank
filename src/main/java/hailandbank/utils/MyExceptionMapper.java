@@ -24,6 +24,7 @@ public class MyExceptionMapper implements ExceptionMapper<Exception>{
         MediaType m = MyUtils.getRequestAcceptedMedia(headers);
         
         if (e instanceof WebApplicationException) {
+            
             return Response.status(
                         ((WebApplicationException) e).getResponse().getStatus()
                     )

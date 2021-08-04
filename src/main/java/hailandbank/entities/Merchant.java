@@ -3,6 +3,7 @@ package hailandbank.entities;
 
 
 import java.time.LocalDateTime;
+import java.util.List;
 import javax.json.bind.annotation.JsonbProperty;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -89,6 +90,10 @@ public class Merchant extends User {
     @XmlElement(name = "status_updated_at")
     private LocalDateTime statusUpdatedAt;
     
+    @JsonbProperty("settlement_accounts")
+    @XmlElement(name = "settlement_accounts")
+    private List<SettlementAccount> settlementAccounts;
+    
     
     public long getMerchantId() {
         return merchantId;
@@ -144,6 +149,15 @@ public class Merchant extends User {
 
     public void setStatusUpdatedAt(LocalDateTime statusUpdatedAt) {
         this.statusUpdatedAt = statusUpdatedAt;
+    }
+    
+    
+    public List<SettlementAccount> getSettlementAccounts() {
+        return settlementAccounts;
+    }
+
+    public void setSettlementAccounts(List<SettlementAccount> settlementAccounts) {
+        this.settlementAccounts = settlementAccounts;
     }
     
     

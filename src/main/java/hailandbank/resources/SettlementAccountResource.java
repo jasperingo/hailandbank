@@ -53,7 +53,7 @@ public class SettlementAccountResource extends Resource {
         sa.setMerchant(null);
         
         return Response.ok(
-                MyResponse.success(AppStrings.get("success.credentials"), sa)
+                MyResponse.success(AppStrings.get("success.settlement_account_updated"), sa)
         ).build();
     }
     
