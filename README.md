@@ -1,6 +1,6 @@
 
-#HailAndBank
+# HailAndBank
 
-##A home delivery cash back system built with Jersey, JAXB, MySQL
+## A home delivery cash back system built with Jersey, JAXB, MySQL
 
 
